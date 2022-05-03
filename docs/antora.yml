@@ -1,0 +1,6 @@
+name: appcat-service-prototype
+title: "Application Catalog: Redis (Prototype)"
+version: master
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/nav.adoc

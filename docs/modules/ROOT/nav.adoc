@@ -1,0 +1,23 @@
+* xref:index.adoc[Introduction]
+* https://github.com/vshn/appcat-service-prototype/releases[Changelog,window=_blank]
+
+.Tutorials
+* xref:tutorials/getting-started.adoc[Getting Started]
+
+.How To
+* xref:how-tos/restore-from-backup.adoc[Restore Instance from Backup]
+
+.Technical reference
+* xref:references/api-spec.adoc[API Specification]
+* xref:references/constraints.adoc[Constraints]
+
+.Explanation
+* xref:explanations/features.adoc[Features]
+* xref:explanations/sli.adoc[Service Level Indicators]
+* xref:explanations/backup.adoc[Instance Backups]
+* xref:explanations/restore.adoc[Instance Restores]
+
+.Runbooks
+* xref:runbooks/RedisDown.adoc[RedisDown]
+* xref:runbooks/RedisMissingMaster.adoc[RedisMissingMaster]
+* xref:runbooks/K8upBackupNotRunning.adoc[K8upBackupNotRunning]

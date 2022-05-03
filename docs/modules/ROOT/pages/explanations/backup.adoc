@@ -1,0 +1,49 @@
+= Instance Backups
+
+This page explains the process and content of instance backups.
+
+
+// TODO: add link to appcat base docs regarding data protection.
+[IMPORTANT]
+====
+In general the `link here`[Data Protection] document applies and governs all aspects if not further defined below.
+Please read and understand this before reading on.
+====
+
+== Contents
+
+// Note: Maybe distinguish between Standalone and Replicated architectures, there may be differences (irrelevant for prototype)
+// There could also be different contents in different major versions.
+
+The backups contain the following files and directories:
+
+- `appendonly.aof`
+- `dump.rdb` (if existing)
+
+This is enough to restore Redis to a working state.
+
+== Location
+
+The backups are encrypted at rest in an S3 bucket.
+The bucket is residing on the same datacenter (region and provider) as the service instance is running on.
+
+== Retention policy
+
+The default retention policy applies.
+
+[IMPORTANT]
+====
+Deleting the service instance resource also irrevocably deletes all backups!
+====
+
+== Schedule
+
+The backups are triggered every 24h.
+The time is randomized but the same for every day.
+
+== Process
+
+The backup is done while the service instance is running.
+There isn't a service interruption and no noticable performance impact is expected.
+
+The backup process itself is implemented using https://k8up.io[K8up] and the backend using https://restic.net[Restic].

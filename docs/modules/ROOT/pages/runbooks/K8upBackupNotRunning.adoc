@@ -1,0 +1,15 @@
+= Alert rule: K8upBackupNotRunning
+
+== icon:glasses[] Overview
+
+This rule checks if a scheduled backup is missing in a namespace.
+It will alert if there wasn't a backup running in the last 5 minutes.
+
+== icon:bug[] Steps for Debugging
+
+Check the logs in K8up operator why it didn't schedule one.
+
+[source,shell]
+----
+kubectl -n k8up-system logs deploy/k8up
+----

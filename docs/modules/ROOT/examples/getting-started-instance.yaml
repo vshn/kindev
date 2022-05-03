@@ -1,0 +1,11 @@
+apiVersion: syn.tools/v1
+kind: RedisInstance
+metadata:
+  name: my-instance # <1>
+  namespace: my-project
+spec:
+  parameters:
+    resources:
+      storageSize: 1Gi
+    updatePolicy:
+      version: latest

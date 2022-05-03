@@ -1,0 +1,178 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crossplane-minio
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  labels:
+    service.syn.tools/cluster: appc-service1
+  name: s3bucket
+spec:
+  compositeTypeRef:
+    apiVersion: syn.tools/v1
+    kind: XS3Bucket
+  writeConnectionSecretsToNamespace: crossplane-minio
+  resources:
+    - base:
+        apiVersion: v1
+        kind: Namespace # Let the composition manage the namespace, Crossplane will clean it up if deprovisioned
+        metadata:
+          name: "" # patched from composite name
+      patches:
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-minio-%s"
+      readinessChecks:
+        - type: MatchString
+          fieldPath: status.phase
+          matchString: Active
+    - base:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          annotations:
+            secret-generator.v1.mittwald.de/encoding: hex
+            secret-generator.v1.mittwald.de/autogenerate: accessKey,secretKey
+      patches:
+        - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+          toFieldPath: metadata.namespace
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.name
+      readinessChecks:
+        - type: NonEmpty
+          fieldPath: data.accessKey
+        - type: NonEmpty
+          fieldPath: data.secretKey
+    - connectionDetails:
+        - fromConnectionSecretKey: endpoint
+        - fromConnectionSecretKey: accessKey
+        - fromConnectionSecretKey: secretKey
+      base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          connectionDetails:
+            - apiVersion: v1
+              kind: Service
+              name: minio-server
+              fieldPath: spec.clusterIP
+              toConnectionSecretKey: endpoint
+            - apiVersion: v1
+              kind: Secret
+              name: minio-server
+              fieldPath: data.rootUser
+              toConnectionSecretKey: accessKey
+            - apiVersion: v1
+              kind: Secret
+              name: minio-server
+              fieldPath: data.rootPassword
+              toConnectionSecretKey: secretKey
+          writeConnectionSecretToRef: # the secret the user gets
+            name: ""      # patched from instance name
+            namespace: "" # patched from instance namespace
+          providerConfigRef:
+            name: appc-service1
+          forProvider:
+            wait: true
+            chart:
+              name: minio
+              repository: https://charts.min.io/
+              version: 3.5.9
+            set:
+              # normally we shouldn't user root user, but this is a prototype with Minio
+              # Plus, a default bucket with the same name gets created and granted access
+              - name: rootUser
+                valueFrom:
+                  secretKeyRef:
+                    key: accessKey
+                    name: "" # patched from composite
+                    namespace: crossplane-minio
+              - name: rootPassword
+                valueFrom:
+                  secretKeyRef:
+                    key: secretKey
+                    name: "" # patched from composite
+                    namespace: crossplane-minio
+            values:
+              fullnameOverride: minio-server
+              replicas: 1
+              resources:
+                requests:
+                  memory: 128Mi
+              persistence:
+                size: 1Gi
+              mode: standalone
+              buckets:
+                - name: "" # patched from instance name
+                  policy: none
+          deletionPolicy: Delete
+          rollbackLimit: 3
+      patches:
+        - fromFieldPath: metadata.labels
+        - fromFieldPath: metadata.annotations
+        # Patch connection secret name
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.name
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.set[1].valueFrom.secretKeyRef.name
+        - fromFieldPath: metadata.labels[crossplane.io/claim-name]
+          toFieldPath: spec.writeConnectionSecretToRef.name
+        # bucket name
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: metadata.labels[crossplane.io/claim-namespace]
+              - fromFieldPath: metadata.labels[crossplane.io/claim-name]
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: spec.forProvider.values.buckets[0].name
+        - type: CombineToComposite
+          combine:
+            variables:
+              - fromFieldPath: metadata.labels[crossplane.io/claim-namespace]
+              - fromFieldPath: metadata.labels[crossplane.io/claim-name]
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: status.bucketName
+        - type: ToCompositeFieldPath
+          fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: status.endpoint
+          transforms:
+            - type: string
+              string:
+                fmt: "http://minio-server.sv-minio-%s.svc.cluster.local:9000"
+        # Namespace patches
+        - fromFieldPath: metadata.labels[crossplane.io/claim-namespace]
+          toFieldPath: spec.writeConnectionSecretToRef.namespace
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-minio-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[0].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-minio-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[1].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-minio-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[2].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-minio-%s"

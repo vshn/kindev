@@ -1,0 +1,357 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crossplane-redis
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  annotations:
+    service.syn.tools/description: Redis Instance
+    service.syn.tools/metadata: |
+      {
+        "bullets": [
+          "powered by VSHN"
+        ],
+        "dedicatedService": true,
+        "highAvailability": false,
+        "max_databases": "16",
+        "shareable": true
+      }
+  labels:
+    service.syn.tools/cluster: appc-service1
+    service.syn.tools/id: redis-k8s
+    service.syn.tools/name: redis-k8s
+    service.syn.tools/updatable: "true"
+  name: redis
+spec:
+  compositeTypeRef:
+    apiVersion: syn.tools/v1
+    kind: XRedisInstance
+  writeConnectionSecretsToNamespace: crossplane-redis
+  resources:
+
+    - base:
+        apiVersion: v1
+        kind: Namespace  # Let the composition manage the namespace, Crossplane will clean it up if deprovisioned
+        metadata:
+          name: "" # patched from composite
+          labels:
+            # We will abuse these labels to provide metrics that can be picked up by kube-state-metrics' `kube_secret_labels`.
+            # This will allow us to compute how many minutes an instance is running for billing purposes.
+            # This should be considered a workaround since there could be multiple namespaces involved in a single service, or none at all.
+            # But this serves well for a prototype.
+            service.syn.tools/name: redis
+            service.syn.tools/architecture: standalone
+            service.syn.tools/sla: besteffort # we currently can't switch to "guaranteed" based on whether alerting is enabled
+            service.syn.tools/backups: enabled
+      patches:
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.name
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+      readinessChecks:
+        - type: MatchString
+          fieldPath: status.phase
+          matchString: Active
+
+    - base:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          annotations:
+            secret-generator.v1.mittwald.de/autogenerate: password,repoEncryptionSecret
+      patches:
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.name
+          transforms:
+            - string:
+                fmt: "%s-password"
+              type: string
+      readinessChecks:
+        - type: NonEmpty
+          fieldPath: data.password
+        - type: NonEmpty
+          fieldPath: data.repoEncryptionSecret
+
+    - connectionDetails:
+        - fromConnectionSecretKey: endpoint
+        - fromConnectionSecretKey: port
+        - fromConnectionSecretKey: password
+      base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          connectionDetails:
+            - apiVersion: v1
+              kind: Service
+              name: redis-master
+              fieldPath: spec.clusterIP
+              toConnectionSecretKey: endpoint
+            - apiVersion: v1
+              kind: Service
+              name: redis-master
+              fieldPath: spec.ports[0].port
+              toConnectionSecretKey: port
+            - apiVersion: v1
+              kind: Secret
+              name: redis
+              fieldPath: data.redis-password
+              toConnectionSecretKey: password
+          writeConnectionSecretToRef:
+            name: ""      # patched from instance name
+            namespace: "" # patched from instance namespace
+          providerConfigRef:
+            name: appc-service1
+          forProvider:
+            wait: true
+            chart:
+              # https://artifacthub.io/packages/helm/bitnami/redis/12.9.0
+              name: redis
+              repository: https://charts.bitnami.com/bitnami
+              version: 12.9.0
+            set:
+              - name: password
+                valueFrom:
+                  secretKeyRef:
+                    key: password
+                    name: "" # patched from instance name
+                    namespace: # patched from composite name
+            values:
+              cluster:
+                enabled: false
+                slaveCount: 0
+              fullnameOverride: redis
+              master:
+                podAnnotations:
+                  k8up.io/backupcommand: tar -czf - /data/
+                  k8up.io/file-extension: .tar.gz
+                persistence:
+                  size: "8Gi" # patched from instance
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 500Mi
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+              metrics:
+                enabled: true
+                serviceMonitor:
+                  enabled: false # patched from instance
+                prometheusRule:
+                  enabled: false # patched from instance
+                  rules:
+                    - alert: RedisDown
+                      expr: redis_up{service="{{ template "redis.fullname" . }}-metrics"} == 0
+                      for: 2m
+                      labels:
+                        severity: error
+                      annotations:
+                        summary: Redis(TM) instance {{ "{{ $labels.instance }}" }} down
+                        description: Redis(TM) instance {{ "{{ $labels.instance }}" }} is down
+                        runbook_url: https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/runbooks/RedisDown.html
+                    - alert: RedisMissingMaster
+                      expr: (count(redis_instance_info{role="master"}) or vector(0)) < 1
+                      for: 2m
+                      labels:
+                        severity: error
+                      annotations:
+                        summary: Redis missing master (instance {{ "{{ $labels.instance }}" }})
+                        description: >
+                          Redis cluster has no node marked as master.\n  VALUE = {{ "{{ $value }}" }}\n  LABELS = {{ "{{ $labels }}" }}
+                        runbook_url: https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/runbooks/RedisMissingMaster.html
+                    # - alert: K8upBackupFailed
+                    #   expr: (sum(kube_job_status_failed) by(job_name, namespace) * on(job_name, namespace) group_right() kube_job_labels{label_k8up_syn_tools_type="backup"}) > 0
+                    #   for: 1m
+                    #   labels:
+                    #     severity: error
+                    #   annotations:
+                    #     summary: Job in {{ "{{ $labels.namespace }}" }} of type {{ "{{ $labels.label_k8up_syn_tools_type }}" }} failed
+                    #     runbook_url: https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/runbooks/K8upBackupFailed.html
+                    - alert: K8upBackupNotRunning
+                      expr: sum(rate(k8up_jobs_total{jobType="backup"}[5m])) by (exported_namespace) == 0 and on(exported_namespace) k8up_schedules_gauge > 0
+                      for: 1m
+                      labels:
+                        severity: error
+                      annotations:
+                        summary: No K8up jobs were run in {{ "{{ $labels.exported_namespace }}" }} within the last 5 minutes. Check the operator, there might be a deadlock
+                        runbook_url: https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/runbooks/K8upBackupNotRunning.html
+          reclaimPolicy: Delete
+          rollbackLimit: 3
+      patches:
+        - fromFieldPath: metadata.labels
+        - fromFieldPath: metadata.annotations
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.name
+          transforms:
+            - string:
+                fmt: "%s-password"
+              type: string
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.set[0].valueFrom.secretKeyRef.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/claim-name]
+          toFieldPath: spec.writeConnectionSecretToRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-credentials"
+        # Parameter patches
+        - fromFieldPath: spec.parameters.resources.storageSize
+          toFieldPath: spec.forProvider.values.master.persistence.size
+        # - fromFieldPath: spec.parameters.resources
+        #   toFieldPath: spec.forProvider.values.master.resources
+        #   policy:
+        #     mergeOptions:
+        #       keepMapValues: true # this doesn't work for resources (they're not a map at this level)
+        - fromFieldPath: spec.parameters.resources.limits.memory
+          toFieldPath: spec.forProvider.values.master.resources.limits.memory
+        - fromFieldPath: spec.parameters.resources.requests.memory
+          toFieldPath: spec.forProvider.values.master.resources.requests.memory
+        - fromFieldPath: spec.parameters.resources.limits.cpu
+          toFieldPath: spec.forProvider.values.master.resources.limits.cpu
+        - fromFieldPath: spec.parameters.resources.requests.cpu
+          toFieldPath: spec.forProvider.values.master.resources.requests.cpu
+        # Update policy
+        - fromFieldPath: spec.parameters.updatePolicy.version
+          toFieldPath: spec.forProvider.chart.version
+          transforms:
+            - type: map
+              map:
+                stable: 12.9.1
+                edge: 12.9.2
+                stable-6: 12.9.1 # '6' refers to Redis major version
+                # Simulating an older Redis version.
+                # If removed from the map, instances that use this version become unready, unless they pin the composition revision and set `compositionUpdatePolicy=Manual`
+                stable-5: 12.9.0
+        # Alerting enabled
+        - fromFieldPath: spec.parameters.alerts.enabled
+          toFieldPath: spec.forProvider.values.metrics.prometheusRule.enabled
+        - fromFieldPath: spec.parameters.alerts.enabled
+          toFieldPath: spec.forProvider.values.metrics.serviceMonitor.enabled
+          # Unfortunately map-type patches only works with strings, but the Helm chart expects boolean
+            # transforms:
+            #   - type: map
+            #     map:
+            #       guaranteed: "true"
+            #       besteffort: "false"
+        # Namespace patches
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.forProvider.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/claim-namespace]
+          toFieldPath: spec.writeConnectionSecretToRef.namespace
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[0].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[1].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.connectionDetails[2].namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+
+    - base:
+        apiVersion: syn.tools/v1
+        kind: S3Bucket
+        metadata:
+          name: backup-bucket
+          namespace: "" # patch from instance name
+        spec: {}
+      patches:
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+    - base:
+        apiVersion: k8up.io/v1
+        kind: Schedule
+        metadata:
+          name: backup
+          namespace: "" # patch from redis namespace
+        spec:
+          backend:
+            s3:
+              endpoint: "" # patched from minio namespace
+              bucket: backups
+              accessKeyIDSecretRef:
+                name: "" # patched from S3Bucket XR name
+                key: accessKey
+              secretAccessKeySecretRef:
+                name: "" # patched from S3Bucket XR name
+                key: secretKey
+            repoPasswordSecretRef:
+              name: "" # patched from generated Secret name
+              key: repoEncryptionSecret
+          backup:
+            schedule: '*/10 * * * *' # this should be randomized in prod
+            failedJobsHistoryLimit: 1
+            successfulJobsHistoryLimit: 1
+          prune:
+            schedule: '@hourly-random'
+            retention:
+              keepLast: 5
+              keepDaily: 7
+              keepWeekly: 2
+              keepMonthly: 3
+      patches:
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: metadata.namespace
+          transforms:
+            - type: string
+              string:
+                fmt: "sv-redis-%s"
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.backend.repoPasswordSecretRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-password"
+        - fromFieldPath: spec.resourceRefs[3].name
+          toFieldPath: spec.backend.s3.accessKeyIDSecretRef.name
+        - fromFieldPath: spec.resourceRefs[3].name
+          toFieldPath: spec.backend.s3.secretAccessKeySecretRef.name
+        - fromFieldPath: metadata.labels[crossplane.io/composite]
+          toFieldPath: spec.backend.s3.endpoint
+          transforms:
+            - type: string
+              string:
+                fmt: http://minio-server.sv-minio-%s.svc.cluster.local:9000
+        - type: CombineFromComposite
+          toFieldPath: spec.backend.s3.bucket
+          combine:
+            variables:
+              - fromFieldPath: metadata.labels[crossplane.io/composite]
+              - fromFieldPath: spec.resourceRefs[3].name
+            strategy: string
+            string:
+              fmt: sv-redis-%s-%s
+      readinessChecks:
+        - type: None

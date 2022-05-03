@@ -1,0 +1,11 @@
+= Alert rule: RedisMissingMaster
+
+== icon:glasses[] Overview
+
+This Alert will be thrown if a Redis cluster has no master configured (no Redis Pod has `role=master`) for more than 2 minutes.
+
+== icon:bug[] Steps for Debugging
+
+Check all the Redis Pods in the namespace of the affected Pod and see why no Pod is elected as master.
+
+NOTE: Dummy content, this is just a prototype.

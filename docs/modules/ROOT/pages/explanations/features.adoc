@@ -1,0 +1,12 @@
+= Features
+
+Redis instances contain the following features by default:
+
+- Single-node Redis instance.
+- Automatic updates to the latest minor and patch version within the chosen major version of Redis.
+- Healh checks and uptime monitoring.
+- Instance backups.
+
+// to be added with:
+// dashboards
+// alerting

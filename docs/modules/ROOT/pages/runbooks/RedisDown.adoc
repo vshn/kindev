@@ -1,0 +1,12 @@
+= Alert rule: RedisDown
+
+== icon:glasses[] Overview
+
+This rule checks if a Redis Pod is down.
+If a Pod is down for 2 minutes, this rule will alert.
+It will inform which Pod is affected, for example `pos="redis-master-0"`.
+
+== icon:bug[] Steps for Debugging
+
+Check why the affected Pod is down.
+Use `kubectl describe pod <pod-name>`, `kubectl events` or check the logs of any other Kubernetes related pod debugging resource.
