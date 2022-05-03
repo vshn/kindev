@@ -30,19 +30,6 @@ lint: ## All-in-one linting
 	kubectl apply -f crossplane/composition.yaml
 	kubectl wait --for condition=Offered compositeresourcedefinition/xredisinstances.syn.tools
 
-.PHONY: provision
-provision: export KUBECONFIG = $(KIND_KUBECONFIG)
-provision: .service-definition ## Install local Kubernetes cluster and provision the service instance
-	kubectl apply -f service/prototype-instance.yaml
-	kubectl wait -n my-app --for condition=Ready RedisInstance.syn.tools/redis1 --timeout 180s
-	kubectl apply -f service/test-job.yaml
-	kubectl wait -n my-app --for condition=Complete job/service-connection-verify
-
-.PHONY: deprovision
-deprovision: export KUBECONFIG = $(KIND_KUBECONFIG)
-deprovision: kind-setup ## Uninstall the service instance
-	kubectl delete -f service/prototype-instance.yaml
-
 .PHONY: crossplane-setup
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
