@@ -12,8 +12,6 @@ MAKEFLAGS += --no-builtin-variables
 include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
-# Docs module
-include docs/antora-preview.mk docs/antora-build.mk
 
 .PHONY: help
 help: ## Show this help

@@ -4,7 +4,7 @@ k8up_sentinel = $(kind_dir)/k8up-sentinel
 prometheus_sentinel = $(kind_dir)/prometheus-sentinel
 
 PROJECT_ROOT_DIR = .
-PROJECT_NAME ?= appcat-service-prototype
+PROJECT_NAME ?= kindev
 PROJECT_OWNER ?= vshn
 
 ## BUILD:docker
