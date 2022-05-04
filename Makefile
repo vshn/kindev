@@ -12,8 +12,6 @@ MAKEFLAGS += --no-builtin-variables
 include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
-# Docs module
-include docs/antora-preview.mk docs/antora-build.mk
 
 .PHONY: help
 help: ## Show this help
@@ -23,12 +21,6 @@ help: ## Show this help
 lint: ## All-in-one linting
 	@echo 'Check for uncommitted changes ...'
 	git diff --exit-code
-
-.PHONY: .service-definition
-.service-definition: crossplane-setup k8up-setup prometheus-setup
-	kubectl apply -f crossplane/composite.yaml
-	kubectl apply -f crossplane/composition.yaml
-	kubectl wait --for condition=Offered compositeresourcedefinition/xredisinstances.syn.tools
 
 .PHONY: crossplane-setup
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
