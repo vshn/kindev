@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns/website#">
+  <head itemscope itemtype="http://schema.org/WebSite">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Restore Instance from Backup :: Application Catalog: Redis (Prototype)</title>
+    <meta property="og:title" itemprop="name" content="Restore Instance from Backup">
+    <meta name="twitter:title" content="Restore Instance from Backup">
+    <link rel="canonical" href="https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/how-tos/restore-from-backup.html">
+    <meta property="og:url" content="https://vshn.github.io/appcat-service-prototype/appcat-service-prototype/how-tos/restore-from-backup.html">
+    <meta name="generator" content="Antora 2.3.3">
+    <link rel="stylesheet" href="../../_/css/site.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Application Catalog: Redis (Prototype)" />
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="vshn_ch">
+    <meta property="og:locale" content="en_US" />
+    <script>var uiRootPath = '../../_'</script>
+    <script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/7105834.js"></script>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="apple-touch-icon" sizes="152x152" href="/_/img/favicon-152x152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/_/img/favicon-167x167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/_/img/favicon-180x180.png">
+
+<link rel="icon" type="image/png" href="/_/img/favicon-196x196.png" sizes="196x196">
+<link rel="icon" type="image/png" href="/_/img/favicon-192x192.png" sizes="192x192">
+<link rel="icon" type="image/png" href="/_/img/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/_/img/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/_/img/favicon-32x32.png" sizes="32x32">
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="navbar-item">
+        <div class="vshn_logo"></div>
+        <a href="https://vshn.github.io/appcat-service-prototype">Application Catalog: Redis (Prototype)
+          </a>
+      </div>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">VSHN</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" target="_blank" href="https://www.vshn.ch/">Main website</a>
+            <a class="navbar-item" target="_blank" href="https://handbook.vshn.ch/">Handbook</a>
+            <a class="navbar-item" target="_blank" href="https://kb.vshn.ch/">Knowledge Base</a>
+            <a class="navbar-item" target="_blank" href="https://products.docs.vshn.ch/">Products</a>
+            <a class="navbar-item" target="_blank" href="https://legal.docs.vshn.ch/">Legal</a>
+            <a class="navbar-item" target="_blank" href="https://control.docs.vshn.ch/">Portal Help</a>
+            <a class="navbar-item" target="_blank" href="https://docs.appuio.cloud/">APPUiO Cloud Docs</a>
+            <a class="navbar-item" target="_blank" href="https://syn.tools/">Project Syn</a>
+            <a class="navbar-item" target="_blank" href="https://k8up.io/">K8up</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <div class="search-field">
+            <input id="search-input" class="search-input" type="search" placeholder="Search">
+            <button type="submit" class="search-button">
+              <i class="fa fa-search"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="appcat-service-prototype" data-version="master">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="../index.html">Application Catalog: Redis (Prototype)</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../index.html">Introduction</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <span class="nav-text"><a href="https://github.com/vshn/appcat-service-prototype/releases" target="_blank" rel="noopener">Changelog</a></span>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="0">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Tutorials</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../tutorials/getting-started.html">Getting Started</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="0">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">How To</span>
+<ul class="nav-list">
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="restore-from-backup.html">Restore Instance from Backup</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="0">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Technical reference</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../references/api-spec.html">API Specification</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../references/constraints.html">Constraints</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="0">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Explanation</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../explanations/features.html">Features</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../explanations/sli.html">Service Level Indicators</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../explanations/backup.html">Instance Backups</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../explanations/restore.html">Instance Restores</a>
+  </li>
+</ul>
+  </li>
+  <li class="nav-item" data-depth="0">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">Runbooks</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../runbooks/RedisDown.html">RedisDown</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../runbooks/RedisMissingMaster.html">RedisMissingMaster</a>
+  </li>
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="../runbooks/K8upBackupNotRunning.html">K8upBackupNotRunning</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">Application Catalog: Redis (Prototype)</span>
+    <span class="version">master</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <a class="title" href="../index.html">Application Catalog: Redis (Prototype)</a>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="../index.html">master</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="../index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="../index.html">Application Catalog: Redis (Prototype)</a></li>
+    <li>How To</li>
+    <li><a href="restore-from-backup.html">Restore Instance from Backup</a></li>
+  </ul>
+</nav>
+  <div class="edit-this-page"><a href="https://github.com/vshn/kindev/edit/master/docs/modules/ROOT/pages/how-tos/restore-from-backup.adoc">Edit this Page</a></div>
+  </div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">Restore Instance from Backup</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This guide provides instructions how to perform data restores from backups.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Target Audience</dt>
+<dd>
+<p>Service Provider (Engineer)</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>In general, the restore is done using the following steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Prepare access to Restic repository</p>
+</li>
+<li>
+<p>Mount the desired Restic snapshot locally</p>
+</li>
+<li>
+<p>Copy the contents to the instance</p>
+</li>
+<li>
+<p>Restart the instance</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_requirements"><a class="anchor" href="#_requirements"></a>Requirements</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Admin access to service instance deployment</p>
+</li>
+<li>
+<p><code>kubectl</code></p>
+</li>
+<li>
+<p><code>base64</code></p>
+</li>
+<li>
+<p><code>restic</code></p>
+</li>
+<li>
+<p><code>jq</code></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_preparation"><a class="anchor" href="#_preparation"></a>Preparation</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Set basic variables</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">app_namespace="your-app-namespace"
+instance_name="the name of RedisInstance resource in $app_namespace"</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Gather information</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">redis_composition=$(kubectl -n $app_namespace get RedisInstance $instance_name -o jsonpath="{.spec.resourceRef.name}")
+redis_namespace="sv-redis-$redis_composition"
+minio_composition=$(kubectl get xredisinstance $redis_composition -o jsonpath="{.spec.resourceRefs[3].name}")
+minio_namespace="sv-minio-$redis_composition"
+minio_pod=$(kubectl -n $minio_namespace get pods -o jsonpath="{.items[].metadata.name}")
+s3_accesskey=$(kubectl -n $redis_namespace get secret $minio_composition -o jsonpath="{.data.accessKey}" | base64 -d)
+s3_secretkey=$(kubectl -n $redis_namespace get secret $minio_composition -o jsonpath="{.data.secretKey}" | base64 -d)
+s3_bucketname=$(kubectl -n $redis_namespace get s3bucket $minio_composition -o jsonpath="{.status.bucketName}")
+restic_encryptionkey=$(kubectl -n $redis_namespace get secret "$redis_composition-password" -o jsonpath="{.data.repoEncryptionSecret}" | base64 -d)
+pv_node=$(kubectl -n $redis_namespace get pod redis-master-0 -o jsonpath="{.spec.nodeName}")</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Set Restic variables</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">export RESTIC_REPOSITORY="s3:http://localhost:9000/$s3_bucketname"
+export RESTIC_PASSWORD=$restic_encryptionkey
+export AWS_ACCESS_KEY_ID=$s3_accesskey
+export AWS_SECRET_ACCESS_KEY=$s3_secretkey</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_restore"><a class="anchor" href="#_restore"></a>Restore</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Do a port-forward of the Minio instance that runs on the cluster.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">kubectl -n $minio_namespace port-forward pod/$minio_pod 9000:9000 &gt; minio_portforward.log 2&gt;&amp;1 &amp;
+minio_pfid=$!</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Display the available snapshots</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">restic snapshots
+snapshot_id="" <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Select the snapshot ID from the output of <code>restic snapshots</code></td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>If you just need the latest snapshot, set variable to <code>latest</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">snapshot_id=latest</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</li>
+<li>
+<p>Copy data to service instance</p>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>In this step we&#8217;re going to</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Stop the main Redis pod</p>
+</li>
+<li>
+<p>Create a temporary pod with Redis volume</p>
+</li>
+<li>
+<p>Copy the data to temporary pod</p>
+</li>
+<li>
+<p>Stop the temporary pod</p>
+</li>
+<li>
+<p>Start the main Redis pod</p>
+</li>
+</ol>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">kubectl -n $redis_namespace scale statefulset redis-master --replicas=0
+kubectl -n $redis_namespace create -f - &lt;&lt;EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-restore
+spec:
+  volumes:
+    - name: redis-data
+      persistentVolumeClaim:
+        claimName: redis-data-redis-master-0
+  containers:
+    - name: restore
+      image: docker.io/library/busybox:latest
+      command:
+        - /bin/sh
+      args:
+        - -c
+        - sleep infinity
+      volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        runAsUser: 1001
+  restartPolicy: Always
+  nodeName: $pv_node
+  securityContext:
+    fsGroup: 1001
+EOF
+kubectl -n $redis_namespace wait --for condition=Ready pod/redis-restore
+restic dump $snapshot_id /sv-redis-$redis_composition-redis.tar.gz | kubectl -n $redis_namespace exec -i redis-restore -- /bin/sh -c 'rm -r /data/* &amp;&amp; tar -xzf - -C /'
+kubectl -n $redis_namespace delete pod redis-restore
+kubectl -n $redis_namespace scale statefulset redis-master --replicas=1</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cleanup"><a class="anchor" href="#_cleanup"></a>Cleanup</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">kill $minio_pfid
+rm -rf minio_portforward.log
+unset RESTIC_REPOSITORY RESTIC_PASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY</code></pre>
+</div>
+</div>
+</div>
+</div>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>Copyright © VSHN 2021 – All Rights Reserved. <a href="https://vshn.ch/en/privacy-policy/">Privacy Policy</a>, <a href="https://vshn.ch/en/imprint/">Imprint</a>, and <a href="https://vshn.ch/en/contact/">Contact</a>.</p>
+</footer>
+<script src="../../_/js/site.js"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.6/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+});
+</script>
+  </body>
+</html>
