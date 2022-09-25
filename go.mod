@@ -1,6 +1,6 @@
 module github.com/vshn/appcat-service-provider
 
-go 1.17
+go 1.19
 
 require sigs.k8s.io/kind v0.12.0
 
