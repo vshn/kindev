@@ -27,7 +27,13 @@ crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(crossplane_sentinel): kind-setup
 	helm repo add crossplane https://charts.crossplane.io/stable
-	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane --set "args[0]='--debug'" --set "args[1]='--enable-composition-revisions'" --wait
+	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
+	--set "args[0]='--debug'" \
+	--set "args[1]='--enable-composition-functions'" \
+	--set "args[2]='--enable-environment-configs'" \
+	--set "xfn.enabled=true" \
+	--set "xfn.args={--debug}" \
+	--wait
 	@touch $@
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -71,7 +77,7 @@ $(prometheus_sentinel): kind-setup-ingress
 		--values prometheus/values.yaml \
 		prometheus-community/kube-prometheus-stack
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
-	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8081/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8081/alertmanager/.\n***"
+	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8088/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8088/alertmanager/.\n***"
 	@touch $@
 
 .PHONY: clean
