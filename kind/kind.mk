@@ -23,7 +23,7 @@ kind-setup: $(KIND_KUBECONFIG) ## Creates the kind cluster
 
 .PHONY: kind-setup-ingress
 kind-setup-ingress: export KUBECONFIG = $(KIND_KUBECONFIG)
-kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind cluster (localhost:8081)
+kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind cluster (localhost:8088)
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 
 .PHONY: kind-load-image
