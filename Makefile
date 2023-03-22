@@ -38,7 +38,7 @@ $(crossplane_sentinel): kind-setup local-pv-setup
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: $(crossplane_sentinel)
-	helm install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
+	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 certmanager-setup: $(crossplane_sentinel)
@@ -65,11 +65,14 @@ $(k8up_sentinel): kind-setup
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
-local-pv-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-local-pv-setup:
+local-pv-setup: $(local_pv_sentinel)
+
+$(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(local_pv_sentinel):
 	kubectl apply -f local-pv
 	kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
 	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+	@touch $@
 
 prometheus-setup: $(prometheus_sentinel) ## Install Prometheus stack
 
