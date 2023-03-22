@@ -25,7 +25,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup
+$(crossplane_sentinel): kind-setup local-pv-setup
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -64,6 +64,12 @@ $(k8up_sentinel): kind-setup
 		appuio/k8up
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
+
+local-pv-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+local-pv-setup:
+	kubectl apply -f local-pv
+	kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
 prometheus-setup: $(prometheus_sentinel) ## Install Prometheus stack
 
