@@ -27,6 +27,7 @@ prometheus:
     # these will cause Prometheus to search in all namespaces
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
   ingress:
     enabled: true
     hosts:
