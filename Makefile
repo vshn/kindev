@@ -22,30 +22,34 @@ lint: ## All-in-one linting
 	@echo 'Check for uncommitted changes ...'
 	git diff --exit-code
 
-.PHONY: crossplane-setup
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup
+$(crossplane_sentinel): kind-setup local-pv-setup
 	helm repo add crossplane https://charts.crossplane.io/stable
-	helm repo add mittwald https://helm.mittwald.de
-	helm upgrade --install crossplane --create-namespace --namespace crossplane-system crossplane/crossplane --set "args[0]='--debug'" --set "args[1]='--enable-composition-revisions'" --wait
-	helm upgrade --install secret-generator --create-namespace --namespace secret-generator mittwald/kubernetes-secret-generator --wait
-	kubectl apply -f crossplane/provider.yaml
-	kubectl wait --for condition=Healthy provider.pkg.crossplane.io/provider-helm --timeout 60s
-	kubectl apply -f crossplane/provider-config.yaml
-	kubectl create clusterrolebinding crossplane:provider-helm-admin --clusterrole cluster-admin --serviceaccount crossplane-system:$$(kubectl get sa -n crossplane-system -o custom-columns=NAME:.metadata.name --no-headers | grep provider-helm)
-	kubectl create clusterrolebinding crossplane:cluster-admin --clusterrole cluster-admin --serviceaccount crossplane-system:crossplane
+	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
+	--set "args[0]='--debug'" \
+	--set "args[1]='--enable-composition-functions'" \
+	--set "args[2]='--enable-environment-configs'" \
+	--set "xfn.enabled=true" \
+	--set "xfn.args={--debug}" \
+	--wait
 	@touch $@
 
-.PHONY: minio-setup
+stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+stackgres-setup: $(crossplane_sentinel)
+	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
+
+certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+certmanager-setup: $(crossplane_sentinel)
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+
 minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 minio-setup: crossplane-setup ## Install Minio Crossplane implementation
 	kubectl apply -f minio/s3-composite.yaml
 	kubectl apply -f minio/s3-composition.yaml
 	kubectl wait --for condition=Offered compositeresourcedefinition/xs3buckets.syn.tools
 
-.PHONY: k8up-setup
 k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operator
 
 $(k8up_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -61,7 +65,15 @@ $(k8up_sentinel): kind-setup
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
-.PHONY: prometheus-setup
+local-pv-setup: $(local_pv_sentinel)
+
+$(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(local_pv_sentinel):
+	kubectl apply -f local-pv
+	kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+	@touch $@
+
 prometheus-setup: $(prometheus_sentinel) ## Install Prometheus stack
 
 $(prometheus_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -74,7 +86,7 @@ $(prometheus_sentinel): kind-setup-ingress
 		--values prometheus/values.yaml \
 		prometheus-community/kube-prometheus-stack
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
-	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8081/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8081/alertmanager/.\n***"
+	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8088/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8088/alertmanager/.\n***"
 	@touch $@
 
 .PHONY: clean
