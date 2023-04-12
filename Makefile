@@ -13,6 +13,8 @@ include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
 
+vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup
+
 .PHONY: help
 help: ## Show this help
 	@grep -E -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
