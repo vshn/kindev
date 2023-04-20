@@ -28,6 +28,7 @@ crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(crossplane_sentinel): kind-setup local-pv-setup
+	kind load docker-image --name kindev ghcr.io/vshn/appcat-comp-functions
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -35,6 +36,8 @@ $(crossplane_sentinel): kind-setup local-pv-setup
 	--set "args[2]='--enable-environment-configs'" \
 	--set "xfn.enabled=true" \
 	--set "xfn.args={--debug}" \
+	--set "xfn.image.repository=ghcr.io/vshn/appcat-comp-functions" \
+	--set "xfn.image.tag=latest" \
 	--wait
 	@touch $@
 
