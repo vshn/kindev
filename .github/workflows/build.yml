@@ -8,14 +8,11 @@ on:
     branches:
       - master
 
-env:
-  KIND_CMD: kind # kind is pre-installed in GitHub runners
-
 jobs:
-  crossplane:
+  vshnpostgresql:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run crossplane-setup
-        run: make crossplane-setup
+      - name: Run vshnpostgresql
+        run: make vshnpostgresql

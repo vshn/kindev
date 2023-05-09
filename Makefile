@@ -13,7 +13,7 @@ include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
 
-vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup
+vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install everything needed to use PostgreSQL by VSHN locally
 
 .PHONY: help
 help: ## Show this help
@@ -27,7 +27,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup local-pv-setup
+$(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -35,11 +35,14 @@ $(crossplane_sentinel): kind-setup local-pv-setup
 	--set "args[2]='--enable-environment-configs'" \
 	--set "xfn.enabled=true" \
 	--set "xfn.args={--debug}" \
+	--set "xfn.image.repository=ghcr.io/vshn/appcat-comp-functions" \
+	--set "xfn.image.tag=latest" \
 	--wait
 	@touch $@
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-stackgres-setup: $(crossplane_sentinel)
+stackgres-setup: $(crossplane_sentinel) ## Install StackGres
+	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
 	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -67,7 +70,7 @@ $(k8up_sentinel): kind-setup
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
-local-pv-setup: $(local_pv_sentinel)
+local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features
 
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(local_pv_sentinel):
@@ -90,6 +93,9 @@ $(prometheus_sentinel): kind-setup-ingress
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
 	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8088/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8088/alertmanager/.\n***"
 	@touch $@
+
+load-comp-image: ## Load the appcat-comp image if it exists
+	[[ "$$(docker images -q ghcr.io/vshn/appcat-comp-functions 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat-comp-functions || true
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
