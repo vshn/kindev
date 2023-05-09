@@ -42,6 +42,7 @@ $(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: $(crossplane_sentinel) ## Install StackGres
+	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
 	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
