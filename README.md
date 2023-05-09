@@ -13,12 +13,13 @@ Crossplane development environment using kind (Kubernetes-in-Docker).
 
 Short version:
 
-`make crossplane-setup`
+`make vshnpostgresql`
 
 This will
 1. Install a local Kubernetes cluster with kubernetes-in-docker (`kind`)
 1. Install Crossplane Helm chart
 1. Install Secrets Generator Helm chart (for providing random passwords)
+1. Install StackGres Operator
 1. Install Prometheus Operator and a Prometheus instance with AlertManager
 
 To uninstall the cluster:
@@ -27,7 +28,7 @@ To uninstall the cluster:
 
 ## Integration into other projects
 
-kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule. 
+kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
 
 Run inside the git repository of your project:
 
