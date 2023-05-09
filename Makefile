@@ -13,7 +13,8 @@ include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
 
-vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install everything needed to use PostgreSQL by VSHN locally
+.PHONY: vshnpostgresql
+vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install vshn postgres dependencies
 
 .PHONY: help
 help: ## Show this help
