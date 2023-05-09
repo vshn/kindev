@@ -13,7 +13,7 @@ include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
 
-vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup
+vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install everything needed to use PostgreSQL by VSHN locally
 
 .PHONY: help
 help: ## Show this help
@@ -41,7 +41,7 @@ $(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 	@touch $@
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-stackgres-setup: $(crossplane_sentinel)
+stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -69,7 +69,7 @@ $(k8up_sentinel): kind-setup
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
-local-pv-setup: $(local_pv_sentinel)
+local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features
 
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(local_pv_sentinel):
