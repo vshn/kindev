@@ -27,7 +27,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup local-pv-setup
+$(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -35,6 +35,8 @@ $(crossplane_sentinel): kind-setup local-pv-setup
 	--set "args[2]='--enable-environment-configs'" \
 	--set "xfn.enabled=true" \
 	--set "xfn.args={--debug}" \
+	--set "xfn.image.repository=ghcr.io/vshn/appcat-comp-functions" \
+	--set "xfn.image.tag=latest" \
 	--wait
 	@touch $@
 
@@ -90,6 +92,9 @@ $(prometheus_sentinel): kind-setup-ingress
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
 	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8088/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8088/alertmanager/.\n***"
 	@touch $@
+
+load-comp-image: ## Load the appcat-comp image if it exists
+	[[ "$$(docker images -q ghcr.io/vshn/appcat-comp-functions 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat-comp-functions || true
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
