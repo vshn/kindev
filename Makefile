@@ -13,6 +13,9 @@ include Makefile.vars.mk
 # KIND module
 include kind/kind.mk
 
+.PHONY: appcat-apiserver
+appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
+
 .PHONY: vshnpostgresql
 vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install vshn postgres dependencies
 
