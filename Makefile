@@ -99,7 +99,7 @@ $(prometheus_sentinel): kind-setup-ingress
 	@touch $@
 
 load-comp-image: ## Load the appcat-comp image if it exists
-	[[ "$$(docker images -q ghcr.io/vshn/appcat-comp-functions 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat-comp-functions || true
+	[[ "$$(docker images -q ghcr.io/vshn/appcat 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat || true
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
