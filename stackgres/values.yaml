@@ -1,0 +1,10 @@
+deploy:
+  restapi: false
+cert:
+  certManager:
+    autoConfigure: true
+operator:
+  annotations:
+    # This makes sure we redeploy stackgres if we change the cert config
+    cert-config: >
+      ${stackgres_operator:helmValues:cert}

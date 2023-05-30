@@ -17,7 +17,7 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnpostgresql
-vshnpostgresql: stackgres-setup certmanager-setup prometheus-setup ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup ## Install vshn postgres dependencies
 
 .PHONY: help
 help: ## Show this help
@@ -48,7 +48,8 @@ $(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
-	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator
+	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator \
+	--values stackgres/values.yaml
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 certmanager-setup: $(crossplane_sentinel)
