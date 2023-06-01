@@ -1,0 +1,10 @@
+fullnameOverride: minio-server
+mode: standalone
+persistence:
+  size: 1Gi
+replicas: 1
+resources:
+  requests:
+    memory: 128Mi
+rootUser: minioadmin
+rootPassword: minioadmin

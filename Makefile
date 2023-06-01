@@ -17,7 +17,7 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup ## Install vshn postgres dependencies
 
 .PHONY: help
 help: ## Show this help
@@ -40,6 +40,7 @@ $(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 	--set "xfn.enabled=true" \
 	--set "xfn.args[0]='--log-level'" \
 	--set "xfn.args[1]='1'" \
+	--set "xfn.args[2]='--devmode'" \
 	--set "xfn.image.repository=ghcr.io/vshn/appcat" \
 	--set "xfn.image.tag=latest" \
 	--wait
@@ -67,9 +68,9 @@ certmanager-setup: $(crossplane_sentinel)
 
 minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 minio-setup: crossplane-setup ## Install Minio Crossplane implementation
-	kubectl apply -f minio/s3-composite.yaml
-	kubectl apply -f minio/s3-composition.yaml
-	kubectl wait --for condition=Offered compositeresourcedefinition/xs3buckets.syn.tools
+	helm repo add minio https://charts.min.io/ || true
+	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
+	--values minio/values.yaml
 
 k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operator
 
