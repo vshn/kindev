@@ -15,4 +15,4 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run vshnpostgresql
-        run: make vshnpostgresql
+        run: make vshnpostgresql -e enable_xfn=false

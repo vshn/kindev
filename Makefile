@@ -37,7 +37,7 @@ $(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
 	--set "args[0]='--debug'" \
 	--set "args[1]='--enable-composition-functions'" \
 	--set "args[2]='--enable-environment-configs'" \
-	--set "xfn.enabled=true" \
+	--set "xfn.enabled=$(enable_xfn)" \
 	--set "xfn.args[0]='--log-level'" \
 	--set "xfn.args[1]='1'" \
 	--set "xfn.args[2]='--devmode'" \

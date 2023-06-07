@@ -3,6 +3,7 @@ crossplane_sentinel = $(kind_dir)/crossplane-sentinel
 k8up_sentinel = $(kind_dir)/k8up-sentinel
 prometheus_sentinel = $(kind_dir)/prometheus-sentinel
 local_pv_sentinel = $(kind_dir)/local_pv
+enable_xfn = true
 
 PROJECT_ROOT_DIR = .
 PROJECT_NAME ?= kindev
