@@ -68,7 +68,7 @@ certmanager-setup: $(crossplane_sentinel)
 
 minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 minio-setup: crossplane-setup ## Install Minio Crossplane implementation
-	helm repo add minio https://charts.min.io/ || true
+	helm repo add minio https://charts.min.io/ --force-update
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml
 
