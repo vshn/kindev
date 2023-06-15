@@ -19,6 +19,9 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 .PHONY: vshnpostgresql
 vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup ## Install vshn postgres dependencies
 
+.PHONY: vshnredis
+vshnredis: certmanager-setup k8up-setup
+
 .PHONY: help
 help: ## Show this help
 	@grep -E -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -76,14 +79,14 @@ k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operat
 
 $(k8up_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(k8up_sentinel): kind-setup
-	helm repo add appuio https://charts.appuio.ch
+	helm repo add k8up-io https://k8up-io.github.io/k8up
 	kubectl apply -f https://github.com/k8up-io/k8up/releases/latest/download/k8up-crd.yaml
 	helm upgrade --install k8up \
 		--create-namespace \
 		--namespace k8up-system \
 		--wait \
 		--values k8up/values.yaml \
-		appuio/k8up
+		k8up-io/k8up
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
