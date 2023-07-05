@@ -20,7 +20,7 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
-vshnredis: certmanager-setup k8up-setup
+vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
 
 .PHONY: help
 help: ## Show this help
