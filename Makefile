@@ -74,6 +74,8 @@ minio-setup: crossplane-setup ## Install Minio Crossplane implementation
 	helm repo add minio https://charts.min.io/ --force-update
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml
+	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
+	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 
 k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operator
 
