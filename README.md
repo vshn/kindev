@@ -26,6 +26,16 @@ To uninstall the cluster:
 
 `make clean`
 
+## Access resources on the kind cluster
+
+The kind cluster features an ingress controller, that listens on `:8088`.
+
+Currently following apps are configured to use the ingress:
+
+- Promethues: http://127.0.0.1.nip.io:8088/prometheus/
+- Alertmanager: http://127.0.0.1.nip.io:8088/alertmanager/
+- Minio: http://minio.127.0.0.1.nip.io:8088/
+
 ## Integration into other projects
 
 kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
