@@ -42,6 +42,8 @@ For minio access from the localhost just use this alias:
 mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin
 ```
 
+Minio console access: http://minio-gui.127.0.0.1.nip.io:8088
+
 ## Integration into other projects
 
 kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
