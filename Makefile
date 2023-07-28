@@ -17,7 +17,7 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
 vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
@@ -123,3 +123,12 @@ load-comp-image: ## Load the appcat-comp image if it exists
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
+
+.PHONY: metallb
+metallb:
+	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+	kubectl wait --namespace metallb-system \
+                --for=condition=ready pod \
+                --selector=app=metallb \
+                --timeout=90s
+	kubectl apply -f metallb/config.yaml
