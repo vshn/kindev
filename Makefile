@@ -34,7 +34,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
+$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -99,7 +99,9 @@ local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provide
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(local_pv_sentinel):
 	kubectl apply -f local-pv
-	kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+	for sc in $$(kubectl get sc -o name) ; do \
+		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
+	done
 	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
@@ -120,6 +122,20 @@ $(prometheus_sentinel): kind-setup-ingress
 
 load-comp-image: ## Load the appcat-comp image if it exists
 	[[ "$$(docker images -q ghcr.io/vshn/appcat 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat || true
+
+csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as default, this provider supports resizing
+
+$(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(csi_sentinel):
+	cd csi-host-path && \
+	kubectl apply -f snapshot-controller.yaml && \
+	kubectl apply -f storageclass.yaml && \
+	./deploy-hostpath.sh
+	for sc in $$(kubectl get sc -o name) ; do \
+		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
+	done
+	kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+	@touch $@
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
