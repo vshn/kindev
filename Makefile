@@ -125,6 +125,7 @@ load-comp-image: ## Load the appcat-comp image if it exists
 clean: kind-clean ## Clean up local dev environment
 
 metallb: export KUBECONFIG = $(KIND_KUBECONFIG)
+metallb:
 	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 	kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
