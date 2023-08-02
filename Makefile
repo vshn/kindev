@@ -147,6 +147,7 @@ $(metallb_sentinel):
 		--selector=app=metallb \
 		--timeout=90s
 	kubectl apply -f metallb/config.yaml
+	touch $@
 
 .PHONY: unset-default-sc
 unset-default-sc: export KUBECONFIG = $(KIND_KUBECONFIG)
