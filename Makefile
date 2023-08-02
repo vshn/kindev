@@ -130,8 +130,8 @@ $(csi_sentinel): unset-default-sc
 	cd csi-host-path && \
 	kubectl apply -f snapshot-controller.yaml && \
 	kubectl apply -f storageclass.yaml && \
-	./deploy-hostpath.sh
-	kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+	./deploy.sh
+	kubectl patch storageclass csi-hostpath-fast -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
 .PHONY: clean
