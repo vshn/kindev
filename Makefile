@@ -16,8 +16,11 @@ include kind/kind.mk
 .PHONY: appcat-apiserver
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
+.PHONY: vshnall
+vhsnall: vshnpostgresql vshnredis
+
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
 vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
@@ -140,9 +143,10 @@ $(csi_sentinel):
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
 
-.PHONY: metallb
-metallb: export KUBECONFIG = $(KIND_KUBECONFIG)
-metallb:
+metallb-setup: $(metallb_sentinel) ## Install metallb as loadbalancer
+
+$(metallb_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(metallb_sentinel):
 	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 	kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
