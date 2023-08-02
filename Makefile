@@ -140,6 +140,7 @@ $(csi_sentinel):
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
 
+.PHONY: metallb
 metallb: export KUBECONFIG = $(KIND_KUBECONFIG)
 metallb:
 	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
