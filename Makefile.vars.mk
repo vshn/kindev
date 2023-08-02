@@ -3,6 +3,8 @@ crossplane_sentinel = $(kind_dir)/crossplane-sentinel
 k8up_sentinel = $(kind_dir)/k8up-sentinel
 prometheus_sentinel = $(kind_dir)/prometheus-sentinel
 local_pv_sentinel = $(kind_dir)/local_pv
+csi_sentinel = $(kind_dir)/csi_provider
+metallb_sentinel = $(kind_dir)/metallb
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .

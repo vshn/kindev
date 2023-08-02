@@ -16,8 +16,11 @@ include kind/kind.mk
 .PHONY: appcat-apiserver
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
+.PHONY: vshnall
+vhsnall: vshnpostgresql vshnredis
+
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
 vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
@@ -34,7 +37,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup local-pv-setup load-comp-image
+$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -58,8 +61,8 @@ stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	NEW_USER=admin &&\
 	NEW_PASSWORD=password &&\
 	patch=$$(kubectl create secret generic -n stackgres stackgres-restapi  --dry-run=client -o json \
-	  --from-literal=k8sUsername="$$NEW_USER" \
-	  --from-literal=password="$$(echo -n "$${NEW_USER}$${NEW_PASSWORD}"| sha256sum | awk '{ print $$1 }' )") &&\
+		--from-literal=k8sUsername="$$NEW_USER" \
+		--from-literal=password="$$(echo -n "$${NEW_USER}$${NEW_PASSWORD}"| sha256sum | awk '{ print $$1 }' )") &&\
 	kubectl patch secret -n stackgres stackgres-restapi -p "$$patch" &&\
 	kubectl patch secrets --namespace stackgres stackgres-restapi --type json -p '[{"op":"remove","path":"/data/clearPassword"}]' | true &&\
 	encoded=$$(echo -n "$$NEW_PASSWORD" | base64) && \
@@ -97,9 +100,8 @@ $(k8up_sentinel): kind-setup
 local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features
 
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(local_pv_sentinel):
+$(local_pv_sentinel): unset-default-sc
 	kubectl apply -f local-pv
-	kubectl patch storageclass standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
 	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
@@ -121,14 +123,35 @@ $(prometheus_sentinel): kind-setup-ingress
 load-comp-image: ## Load the appcat-comp image if it exists
 	[[ "$$(docker images -q ghcr.io/vshn/appcat 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat || true
 
+csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as default, this provider supports resizing
+
+$(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(csi_sentinel): unset-default-sc
+	cd csi-host-path && \
+	kubectl apply -f snapshot-controller.yaml && \
+	kubectl apply -f storageclass.yaml && \
+	./deploy-hostpath.sh
+	kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+	@touch $@
+
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
 
-metallb: export KUBECONFIG = $(KIND_KUBECONFIG)
-metallb:
+metallb-setup: $(metallb_sentinel) ## Install metallb as loadbalancer
+
+$(metallb_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(metallb_sentinel):
 	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 	kubectl wait --namespace metallb-system \
-                --for=condition=ready pod \
-                --selector=app=metallb \
-                --timeout=90s
+		--for=condition=ready pod \
+		--selector=app=metallb \
+		--timeout=90s
 	kubectl apply -f metallb/config.yaml
+	touch $@
+
+.PHONY: unset-default-sc
+unset-default-sc: export KUBECONFIG = $(KIND_KUBECONFIG)
+unset-default-sc:
+	for sc in $$(kubectl get sc -o name) ; do \
+		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
+	done
