@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # This script captures the steps required to successfully
 # deploy the hostpath plugin driver.  This should be considered
 # authoritative and all updates for this process should be
@@ -25,7 +11,7 @@
 set -e
 set -o pipefail
 
-BASE_DIR="$( cd "$( dirname "$0" )" && pwd )"
+BASE_DIR=$(dirname "$0")
 
 TEMP_DIR="$( mktemp -d )"
 trap 'rm -rf ${TEMP_DIR}' EXIT
@@ -70,7 +56,7 @@ default_kubelet_data_dir=/var/lib/kubelet
 # implies that refreshing that image has to be done manually.
 #
 # As a special case, 'none' as registry removes the registry name.
-# Set VOLUME_MODE_CONVERSION_TESTS to "true" to enable the feature in external-provisioner.
+
 
 # The default is to use the RBAC rules that match the image that is
 # being used, also in the case that the image gets overridden. This
@@ -86,12 +72,6 @@ function rbac_version () {
     yaml="$1"
     image="$2"
     update_rbac="$3"
-
-    if ! [ -f "$yaml" ]; then
-        # Fall back to csi-hostpath-plugin.yaml for those deployments which do not
-        # have individual pods for the sidecars.
-        yaml="$(dirname "$yaml")/csi-hostpath-plugin.yaml"
-    fi
 
     # get version from `image: quay.io/k8scsi/csi-attacher:v1.0.1`, ignoring comments
     version="$(sed -e 's/ *#.*$//' "$yaml" | grep "image:.*$image" | sed -e 's/ *#.*//' -e 's/.*://')"
@@ -138,30 +118,9 @@ function version_gt() {
     test "$(printf '%s' "$versions" | sort -V | head -n 1)" != "$greaterVersion"
 }
 
-function volume_mode_conversion () {
-    [ "${VOLUME_MODE_CONVERSION_TESTS}" == "true" ]
-}
 
-# In addition, the RBAC rules can be overridden separately.
-# For snapshotter 2.0+, the directory has changed.
-SNAPSHOTTER_RBAC_RELATIVE_PATH="rbac.yaml"
-if version_gt $(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-snapshotter.yaml" csi-snapshotter "${UPDATE_RBAC_RULES}") "v1.255.255"; then
-	SNAPSHOTTER_RBAC_RELATIVE_PATH="csi-snapshotter/rbac-csi-snapshotter.yaml"
-fi
-
-CSI_PROVISIONER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-provisioner.yaml" csi-provisioner false)/deploy/kubernetes/rbac.yaml"
-: ${CSI_PROVISIONER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-provisioner.yaml" csi-provisioner "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
-CSI_ATTACHER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-attacher/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-attacher.yaml" csi-attacher false)/deploy/kubernetes/rbac.yaml"
-: ${CSI_ATTACHER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-attacher/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-attacher.yaml" csi-attacher "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
-CSI_SNAPSHOTTER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-snapshotter.yaml" csi-snapshotter false)/deploy/kubernetes/${SNAPSHOTTER_RBAC_RELATIVE_PATH}"
-: ${CSI_SNAPSHOTTER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-snapshotter.yaml" csi-snapshotter "${UPDATE_RBAC_RULES}")/deploy/kubernetes/${SNAPSHOTTER_RBAC_RELATIVE_PATH}}
-CSI_RESIZER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-resizer/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-resizer.yaml" csi-resizer false)/deploy/kubernetes/rbac.yaml"
-: ${CSI_RESIZER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-resizer/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-resizer.yaml" csi-resizer "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
-
-CSI_EXTERNALHEALTH_MONITOR_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-health-monitor/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-plugin.yaml" csi-external-health-monitor-controller false)/deploy/kubernetes/external-health-monitor-controller/rbac.yaml"
-: ${CSI_EXTERNALHEALTH_MONITOR_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-health-monitor/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-plugin.yaml" csi-external-health-monitor-controller "${UPDATE_RBAC_RULES}")/deploy/kubernetes/external-health-monitor-controller/rbac.yaml}
-
-INSTALL_CRD=${INSTALL_CRD:-"false"}
+CSI_PROVISIONER_RBAC_YAML="https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-plugin.yaml" csi-provisioner false)/deploy/kubernetes/rbac.yaml"
+: ${CSI_PROVISIONER_RBAC:=https://raw.githubusercontent.com/kubernetes-csi/external-provisioner/$(rbac_version "${BASE_DIR}/hostpath/csi-hostpath-plugin.yaml" csi-provisioner "${UPDATE_RBAC_RULES}")/deploy/kubernetes/rbac.yaml}
 
 # Some images are not affected by *_REGISTRY/*_TAG and IMAGE_* variables.
 # The default is to update unless explicitly excluded.
@@ -176,7 +135,7 @@ run () {
 
 # rbac rules
 echo "applying RBAC rules"
-for component in CSI_PROVISIONER CSI_ATTACHER CSI_SNAPSHOTTER CSI_RESIZER CSI_EXTERNALHEALTH_MONITOR; do
+for component in CSI_PROVISIONER; do
     eval current="\${${component}_RBAC}"
     eval original="\${${component}_RBAC_YAML}"
     if [ "$current" != "$original" ]; then
@@ -210,13 +169,31 @@ EOF
     run kubectl apply --kustomize "${TEMP_DIR}"
 done
 
+# The cluster must support exactly the version that the external-provisioner supports.
+# The problem then becomes that the version of the external-provisioner might get
+# changed via CSI_PROVISIONER_TAG, so we cannot just check for the version currently
+# listed in the YAML file.
+case "$CSI_PROVISIONER_TAG" in
+    *) csistoragecapacities_api=v1beta1;; # we currently always use that version
+esac
+get_csistoragecapacities=$(kubectl get csistoragecapacities.${csistoragecapacities_api}.storage.k8s.io 2>&1 || true)
+if  echo "$get_csistoragecapacities" | grep -q "the server doesn't have a resource type"; then
+    have_csistoragecapacity=false
+else
+    have_csistoragecapacity=true
+    echo "csistoragecapacities.${csistoragecapacities_api}.storage.k8s.io:"
+    show_lines=4
+    echo "$get_csistoragecapacities" | head -n $show_lines | sed -e 's/^/   /'
+    if [ $(echo "$get_csistoragecapacities" | wc -l) -gt $show_lines ]; then
+        echo "   ..."
+    fi
+fi
+echo "deploying with CSIStorageCapacity $csistoragecapacities_api: $have_csistoragecapacity"
+
 # deploy hostpath plugin and registrar sidecar
 echo "deploying hostpath components"
 for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
     echo "   $i"
-    if volume_mode_conversion; then
-      sed -i -e 's/# end csi-provisioner args/- \"--prevent-volume-mode-conversion=true\"\n            # end csi-provisioner args/' $i
-    fi
     modified="$(cat "$i" | sed -e "s;${default_kubelet_data_dir}/;${KUBELET_DATA_DIR}/;" | while IFS= read -r line; do
         nocomments="$(echo "$line" | sed -e 's/ *#.*$//')"
         if echo "$nocomments" | grep -q '^[[:space:]]*image:[[:space:]]*'; then
@@ -251,6 +228,9 @@ for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
             fi
             echo "        using $line" >&2
         fi
+        if ! $have_csistoragecapacity; then
+            line="$(echo "$line" | grep -v -e 'storageCapacity: true' -e '--enable-capacity')"
+        fi
         echo "$line"
     done)"
     if ! echo "$modified" | kubectl apply -f -; then
@@ -260,59 +240,40 @@ for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
     fi
 done
 
-check_statefulset () (
-    ready=$(kubectl get "statefulset/$1" -o jsonpath="{.status.readyReplicas}")
-    if [ "$ready" ] && [ "$ready" -gt 0 ]; then
-        return 0
-    fi
-    return 1
-)
-
-check_statefulsets () (
-    while [ "$#" -gt 0 ]; do
-        if ! check_statefulset "$1"; then
-            return 1
+wait_for_daemonset () {
+    retries=10
+    while [ $retries -ge 0 ]; do
+        ready=$(kubectl get -n $1 daemonset $2 -o jsonpath="{.status.numberReady}")
+        required=$(kubectl get -n $1 daemonset $2 -o jsonpath="{.status.desiredNumberScheduled}")
+        if [ $ready -gt 0 ] && [ $ready -eq $required ]; then
+            return 0
         fi
-        shift
+        retries=$((retries - 1))
+        sleep 3
     done
-    return 0
-)
+    return 1
+}
 
-# Wait until all StatefulSets of the deployment are ready.
-# The assumption is that we use one or more of those.
-statefulsets="$(kubectl get statefulsets -l app.kubernetes.io/instance=hostpath.csi.k8s.io -o jsonpath='{range .items[*]}{" "}{.metadata.name}{end}')"
-cnt=0
-while ! check_statefulsets $statefulsets; do
-    if [ $cnt -gt 30 ]; then
-        echo "Deployment:"
-        (set +e; set -x; kubectl describe all,role,clusterrole,rolebinding,clusterrolebinding,serviceaccount,storageclass,csidriver --all-namespaces -l app.kubernetes.io/instance=hostpath.csi.k8s.io)
-        echo
-        echo "Pod logs:"
-        kubectl get pods -l app.kubernetes.io/instance=hostpath.csi.k8s.io --all-namespaces -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}' | while read -r pod containers; do
-            for c in $containers; do
-                echo
-                (set +e; set -x; kubectl logs $pod $c)
-            done
+
+# Wait until the DaemonSet is running on all nodes.
+if ! wait_for_daemonset default csi-hostpathplugin; then
+    echo
+    echo "driver not ready"
+    echo "Deployment:"
+    (set +e; set -x; kubectl describe all,role,clusterrole,rolebinding,clusterrolebinding,serviceaccount,storageclass,csidriver --all-namespaces -l app.kubernetes.io/instance=hostpath.csi.k8s.io)
+    echo
+    echo "Pod logs:"
+    kubectl get pods -l app.kubernetes.io/instance=hostpath.csi.k8s.io --all-namespaces -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{range .spec.containers[*]}{.name}{" "}{end}{"\n"}{end}' | while read -r pod containers; do
+        for c in $containers; do
+            echo
+            (set +e; set -x; kubectl logs $pod $c)
         done
-        echo
-        echo "ERROR: hostpath deployment not ready after over 5min"
-        exit 1
-    fi
-    echo $(date +%H:%M:%S) "waiting for hostpath deployment to complete, attempt #$cnt"
-    cnt=$(($cnt + 1))
-    sleep 10
-done
+    done
+    exit 1
+fi
 
 # Create a test driver configuration in the place where the prow job
 # expects it?
 if [ "${CSI_PROW_TEST_DRIVER}" ]; then
-    cp "${BASE_DIR}/test-driver.yaml" "${CSI_PROW_TEST_DRIVER}"
-
-    # When testing late binding, pods must be forced to run on the
-    # same node as the hostpath driver. external-provisioner currently
-    # doesn't handle the case when the "wrong" node is chosen and gets
-    # stuck permanently with:
-    # error generating accessibility requirements: no topology key found on CSINode csi-prow-worker2
-    node="$(kubectl get pods/csi-hostpathplugin-0 -o jsonpath='{.spec.nodeName}')"
-    echo >>"${CSI_PROW_TEST_DRIVER}" "ClientNodeName: $node"
+    sed -e "s/capacity: true/capacity: ${have_csistoragecapacity}/" "${BASE_DIR}/test-driver.yaml" >"${CSI_PROW_TEST_DRIVER}"
 fi
