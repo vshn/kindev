@@ -61,8 +61,8 @@ stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	NEW_USER=admin &&\
 	NEW_PASSWORD=password &&\
 	patch=$$(kubectl create secret generic -n stackgres stackgres-restapi  --dry-run=client -o json \
-	  --from-literal=k8sUsername="$$NEW_USER" \
-	  --from-literal=password="$$(echo -n "$${NEW_USER}$${NEW_PASSWORD}"| sha256sum | awk '{ print $$1 }' )") &&\
+		--from-literal=k8sUsername="$$NEW_USER" \
+		--from-literal=password="$$(echo -n "$${NEW_USER}$${NEW_PASSWORD}"| sha256sum | awk '{ print $$1 }' )") &&\
 	kubectl patch secret -n stackgres stackgres-restapi -p "$$patch" &&\
 	kubectl patch secrets --namespace stackgres stackgres-restapi --type json -p '[{"op":"remove","path":"/data/clearPassword"}]' | true &&\
 	encoded=$$(echo -n "$$NEW_PASSWORD" | base64) && \
@@ -100,11 +100,8 @@ $(k8up_sentinel): kind-setup
 local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features
 
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(local_pv_sentinel):
+$(local_pv_sentinel): unset-default-sc
 	kubectl apply -f local-pv
-	for sc in $$(kubectl get sc -o name) ; do \
-		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
-	done
 	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
@@ -129,14 +126,11 @@ load-comp-image: ## Load the appcat-comp image if it exists
 csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as default, this provider supports resizing
 
 $(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(csi_sentinel):
+$(csi_sentinel): unset-default-sc
 	cd csi-host-path && \
 	kubectl apply -f snapshot-controller.yaml && \
 	kubectl apply -f storageclass.yaml && \
 	./deploy-hostpath.sh
-	for sc in $$(kubectl get sc -o name) ; do \
-		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
-	done
 	kubectl patch storageclass csi-hostpath-sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
@@ -149,7 +143,14 @@ $(metallb_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(metallb_sentinel):
 	kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
 	kubectl wait --namespace metallb-system \
-                --for=condition=ready pod \
-                --selector=app=metallb \
-                --timeout=90s
+		--for=condition=ready pod \
+		--selector=app=metallb \
+		--timeout=90s
 	kubectl apply -f metallb/config.yaml
+
+.PHONY: unset-default-sc
+unset-default-sc: export KUBECONFIG = $(KIND_KUBECONFIG)
+unset-default-sc:
+	for sc in $$(kubectl get sc -o name) ; do \
+		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
+	done
