@@ -249,7 +249,7 @@ wait_for_daemonset () {
             return 0
         fi
         retries=$((retries - 1))
-        sleep 3
+        sleep 10
     done
     return 1
 }

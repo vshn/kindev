@@ -37,7 +37,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
+$(crossplane_sentinel): kind-setup metallb-setup csi-host-path-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
@@ -145,7 +145,7 @@ $(metallb_sentinel):
 	kubectl wait --namespace metallb-system \
 		--for=condition=ready pod \
 		--selector=app=metallb \
-		--timeout=90s
+		--timeout=180s
 	kubectl apply -f metallb/config.yaml
 	touch $@
 
