@@ -19,4 +19,4 @@ nodes:
   - role: worker
   - role: worker
 networking:
-  disableDefaultCNI: false
+  disableDefaultCNI: true

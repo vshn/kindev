@@ -27,12 +27,12 @@ kind-setup-ingress: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind cluster (localhost:8088)
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 
-# .PHONY: kind-load-image
-# # We fix the arch to linux/amd64 since kind runs in amd64 even on Mac/arm.
-# kind-load-image: export GOOS = linux
-# kind-load-image: export GOARCH = amd64
-# kind-load-image: kind-setup  ## Load the container image onto kind cluster
-# 	@$(kind_bin) load docker-image --name $(KIND_CLUSTER) $(CONTAINER_IMG)
+.PHONY: kind-load-image
+# We fix the arch to linux/amd64 since kind runs in amd64 even on Mac/arm.
+kind-load-image: export GOOS = linux
+kind-load-image: export GOARCH = amd64
+kind-load-image: kind-setup  ## Load the container image onto kind cluster
+	@$(kind_bin) load docker-image --name $(KIND_CLUSTER) $(CONTAINER_IMG)
 
 .PHONY: kind-clean
 kind-clean: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -56,19 +56,19 @@ $(KIND_KUBECONFIG): $(kind_bin)
 	@echo =======
 
 
-# # install cilium via helm
-# .PHONY: cilium
-# cilium: export KUBECONFIG = $(KIND_KUBECONFIG)
-# cilium: kind-setup ## Install cilium
-# 	docker pull $(cilium_image)
-# 	kind load docker-image $(cilium_image) --name $(KIND_CLUSTER)
-# 	helm repo add cilium https://helm.cilium.io/
-# 	helm upgrade --install cilium cilium/cilium --version $(cilium_version) \
-# 		--namespace kube-system \
-# 		--set nodeinit.enabled=true \
-# 		--set k8s.requireIPv4PodCIDR=true \
-# 		--set kubeProxyReplacement=strict \
-# 		--set l2announcements.enabled=true \
-# 		--set hostFirewall.enabled=true \
-# 		--set externalIPs.enabled=true 
-# 	kubectl apply -f ../cilium/
+# install cilium via helm
+.PHONY: cilium
+cilium: export KUBECONFIG = $(KIND_KUBECONFIG)
+cilium: kind-setup ## Install cilium
+	docker pull $(cilium_image)
+	kind load docker-image $(cilium_image) --name $(KIND_CLUSTER)
+	helm repo add cilium https://helm.cilium.io/
+	helm upgrade --install cilium cilium/cilium --version $(cilium_version) \
+		--namespace kube-system \
+		--set nodeinit.enabled=true \
+		--set k8s.requireIPv4PodCIDR=true \
+		--set kubeProxyReplacement=strict \
+		--set l2announcements.enabled=true \
+		--set hostFirewall.enabled=true \
+		--set externalIPs.enabled=true 
+	kubectl apply -f cilium/

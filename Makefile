@@ -20,7 +20,8 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vhsnall: vshnpostgresql vshnredis
 
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup cilium
+#vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
 vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
@@ -37,7 +38,7 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup metallb-setup csi-host-path-setup load-comp-image
+$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
