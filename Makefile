@@ -78,6 +78,8 @@ minio-setup: crossplane-setup ## Install Minio Crossplane implementation
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml
 	kubectl apply -f minio/gui-ingress.yaml
+	kubectl create ns syn-crossplane || true
+	kubectl apply -f minio/credentials.yaml
 	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 	@echo -e "***\n*** console access http://minio-gui.127.0.0.1.nip.io:8088\n***"
