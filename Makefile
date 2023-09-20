@@ -151,6 +151,15 @@ $(metallb_sentinel):
 	kubectl apply -f metallb/config.yaml
 	touch $@
 
+komoplane-setup: $(komoplane_sentinel) ## Install komoplane crossplane troubleshooter
+
+$(komoplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(komoplane_sentinel):
+	helm repo add komodorio https://helm-charts.komodor.io --force-update
+	helm upgrade --install --create-namespace --namespace komoplane komoplane komodorio/komoplane
+	kubectl apply -f komoplane
+	touch $@
+
 .PHONY: unset-default-sc
 unset-default-sc: export KUBECONFIG = $(KIND_KUBECONFIG)
 unset-default-sc:

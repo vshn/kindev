@@ -5,6 +5,7 @@ prometheus_sentinel = $(kind_dir)/prometheus-sentinel
 local_pv_sentinel = $(kind_dir)/local_pv
 csi_sentinel = $(kind_dir)/csi_provider
 metallb_sentinel = $(kind_dir)/metallb
+komoplane_sentinel = $(kind_dir)/komoplane
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .
