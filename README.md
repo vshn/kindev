@@ -35,6 +35,7 @@ Currently following apps are configured to use the ingress:
 - Promethues: http://127.0.0.1.nip.io:8088/prometheus/
 - Alertmanager: http://127.0.0.1.nip.io:8088/alertmanager/
 - Minio: http://minio.127.0.0.1.nip.io:8088/
+- [Komoplane](https://github.com/komodorio/komoplane) (make komoplane-setup): http://komoplane.127.0.0.1.nip.io:8088/
 
 For minio access from the localhost just use this alias:
 

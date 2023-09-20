@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: komoplane-gui
+  namespace: komoplane
+  labels:
+    app: komoplane
+spec:
+  rules:
+    - host: komoplane.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: komoplane
+                port:
+                  number: 8090
