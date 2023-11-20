@@ -37,10 +37,11 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup csi-host-path-setup
+$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 	helm repo add crossplane https://charts.crossplane.io/stable --force-update
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
+	--set "args[1]='--enable-environment-configs'" \
 	--wait
 	@touch $@
 
