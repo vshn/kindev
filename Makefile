@@ -52,12 +52,11 @@ stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	kubectl -n stackgres wait --for condition=Available deployment/stackgres-operator --timeout 120s
 
 	# wait max 60 seconds for secret to be created - it takes little bit longer now for secret to appear, therefore we need a mechanism to block execution until it appears
+	echo "waiting for stackgres-restapi-admin secret creation..."
 	@for i in $$(seq 1 60); do \
         if kubectl get secret stackgres-restapi-admin -n stackgres > /dev/null 2>&1; then \
-            echo "Secret found!"; \
             break; \
         else \
-            echo "Secret not found. Retrying ($$i/60)..."; \
             sleep 1; \
         fi; \
 	done;
