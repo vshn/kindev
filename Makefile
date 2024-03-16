@@ -48,7 +48,7 @@ $(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
-	helm upgrade --install --version 1.7.0 --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
+	helm upgrade --install --version 1.8.0 --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
 	kubectl -n stackgres wait --for condition=Available deployment/stackgres-operator --timeout 120s
 
 	# wait max 60 seconds for secret to be created - it takes little bit longer now for secret to appear, therefore we need a mechanism to block execution until it appears
@@ -172,3 +172,13 @@ unset-default-sc:
 	for sc in $$(kubectl get sc -o name) ; do \
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
+
+.PHONY: kafka-setup
+kafka-setup:
+	kubectl create namespace kafka || true
+	kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+
+.PHONY: kafka-setup-simple-cluster
+kafka-setup-simple-cluster:
+	kubectl apply -f kafka/single-kafka.sample.yaml -n kafka
+	kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
