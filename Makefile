@@ -60,7 +60,7 @@ stackgres-setup: $(crossplane_sentinel) ## Install StackGres
             sleep 1; \
         fi; \
 	done;
-	
+
 	# Set simple credentials for development
 	NEW_USER=admin &&\
 	NEW_PASSWORD=password &&\
@@ -95,7 +95,7 @@ k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operat
 $(k8up_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(k8up_sentinel): kind-setup
 	helm repo add k8up-io https://k8up-io.github.io/k8up
-	kubectl apply -f https://github.com/k8up-io/k8up/releases/latest/download/k8up-crd.yaml
+	kubectl apply -f https://github.com/k8up-io/k8up/releases/latest/download/k8up-crd.yaml --server-side
 	helm upgrade --install k8up \
 		--create-namespace \
 		--namespace k8up-system \
