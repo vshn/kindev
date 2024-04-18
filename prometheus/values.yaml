@@ -12,18 +12,13 @@ grafana:
   enabled: false
 
 alertmanager:
-  alertmanagerSpec:
-    routePrefix: /alertmanager/
   ingress:
     enabled: true
     hosts:
-      - 127.0.0.1.nip.io
-    paths:
-      - /alertmanager/
+      - alertmanager.127.0.0.1.nip.io
 
 prometheus:
   prometheusSpec:
-    routePrefix: /prometheus/
     # these will cause Prometheus to search in all namespaces
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
@@ -31,9 +26,7 @@ prometheus:
   ingress:
     enabled: true
     hosts:
-      - 127.0.0.1.nip.io
-    paths:
-      - /prometheus/
+      - prometheus.127.0.0.1.nip.io
 
 # See https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-state-metrics
 kube-state-metrics:

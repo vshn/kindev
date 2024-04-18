@@ -125,7 +125,7 @@ $(prometheus_sentinel): kind-setup-ingress
 		--values prometheus/values.yaml \
 		prometheus-community/kube-prometheus-stack
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
-	@echo -e "***\n*** Installed Prometheus in http://127.0.0.1.nip.io:8088/prometheus/ and AlertManager in http://127.0.0.1.nip.io:8088/alertmanager/.\n***"
+	@echo -e "***\n*** Installed Prometheus in http://prometheus.127.0.0.1.nip.io:8088/ and AlertManager in http://alertmanager.127.0.0.1.nip.io:8088/.\n***"
 	@touch $@
 
 load-comp-image: ## Load the appcat-comp image if it exists
