@@ -17,7 +17,7 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnall
-vhsnall: vshnpostgresql vshnredis
+vshnall: vshnpostgresql vshnredis
 
 .PHONY: vshnpostgresql
 vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
