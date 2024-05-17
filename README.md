@@ -32,8 +32,8 @@ The kind cluster features an ingress controller, that listens on `:8088`.
 
 Currently following apps are configured to use the ingress:
 
-- Promethues: http://127.0.0.1.nip.io:8088/prometheus/
-- Alertmanager: http://127.0.0.1.nip.io:8088/alertmanager/
+- Promethues: http://prometheus.127.0.0.1.nip.io:8088/
+- Alertmanager: http://alertmanager.127.0.0.1.nip.io:8088/
 - Minio: http://minio.127.0.0.1.nip.io:8088/
 - [Komoplane](https://github.com/komodorio/komoplane) (make komoplane-setup): http://komoplane.127.0.0.1.nip.io:8088/
 
