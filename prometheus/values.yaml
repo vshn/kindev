@@ -11,6 +11,9 @@ kubeControllerManager:
 grafana:
   enabled: false
 
+defaultRules:
+  create: false
+
 alertmanager:
   alertmanagerSpec:
     routePrefix: /alertmanager/
@@ -20,6 +23,67 @@ alertmanager:
       - 127.0.0.1.nip.io
     paths:
       - /alertmanager/
+  config:
+    global:
+      resolve_timeout: 5m
+      opsgenie_api_key: "373b551f-6352-43f1-98dd-345949258aa0"
+    "inhibit_rules":
+      - "equal":
+          - "namespace"
+          - "alertname"
+        "source_match":
+          "severity": "critical"
+        "target_match_re":
+          "severity": "warning|info"
+      - "equal":
+          - "namespace"
+          - "alertname"
+        "source_match":
+          "severity": "warning"
+        "target_match_re":
+          "severity": "info"
+    receivers:
+      - name: team_default_schedar
+        opsgenie_configs:
+          - api_key: 5fa8fc4c-2c2e-4729-944f-a0a6c90fcd81
+            description: '{{ if gt (len .Alerts.Firing) 0 -}}\nAlerts Firing:\n{{ range .Alerts.Firing }}\n- Message: {{ .Annotations.message }}\n  Labels:\n{{ range .Labels.SortedPairs }}   - {{ .Name }} = {{ .Value }}\n{{ end }}   Annotations:\n{{ range .Annotations.SortedPairs }}   - {{ .Name }} = {{ .Value }}\n{{ end }}   Source: {{ .GeneratorURL }}\n{{ end }}\n{{- end }}\n{{ if gt (len .Alerts.Resolved) 0 -}}\nAlerts Resolved:\n{{ range .Alerts.Resolved }}\n- Message: {{ .Annotations.message }}\n  Labels:\n{{ range .Labels.SortedPairs }}   - {{ .Name }} = {{ .Value }}\n{{ end }}   Annotations:\n{{ range .Annotations.SortedPairs }}   - {{ .Name }} = {{ .Value }}\n{{ end }}   Source: {{ .GeneratorURL }}\n{{ end }}\n{{- end }}'
+            details:
+              alertname: '{{ .GroupLabels.alertname }}'
+              cluster_id: '{{ .CommonLabels.cluster_id }}'
+              deployment: '{{- if .CommonLabels.deployment -}}{{- .CommonLabels.deployment -}}{{- end -}}'
+              namespace: '{{- if .CommonLabels.exported_namespace -}}{{- .CommonLabels.exported_namespace -}}{{- else if .CommonLabels.namespace -}}{{- .CommonLabels.namespace -}}{{- end -}}'
+              pod: '{{- if .CommonLabels.pod -}}{{- .CommonLabels.pod -}}{{- end -}}'
+              service_level: standard
+              severity: '{{ .GroupLabels.severity }}'
+              tenant_id: '{{ .CommonLabels.tenant_id }}'
+            message: '[{{ .CommonLabels.tenant_id }}/{{ .CommonLabels.cluster_id }}] {{ .GroupLabels.alertname }} in {{ .GroupLabels.namespace }}'
+            priority: '{{ if eq .GroupLabels.severity "critical" }}P1{{ else if eq .GroupLabels.severity "warning" }}P3{{ else if eq .GroupLabels.severity "info" }}P4{{ else }}P5{{ end }}'
+            responders:
+              - id: 26ebcf34-2be1-4905-9d8c-1997e0805bcf
+                type: team
+            source: demo-appcat
+            tags: '{{ .CommonLabels.tenant_id }}, {{ .CommonLabels.cluster_id }}, {{ .GroupLabels.severity }}, {{ .GroupLabels.alertname }}, {{ .GroupLabels.namespace }}, {{- if .CommonLabels.exported_namespace -}}{{ .CommonLabels.exported_namespace }},{{- end -}} {{- if eq .CommonLabels.OnCall "true" -}}OnCall,{{- end -}}, standard'
+    route:
+      group_by:
+        - alertname
+        - namespace
+        - severity
+        - cluster_id
+        - tenant_id
+      group_interval: 5s
+      group_wait: 0s
+      receiver: team_default_schedar
+      repeat_interval: 10m
+      routes:
+        - continue: true
+          matchers:
+            - 'syn_team = ""'
+            - 'namespace =~ "syn-appcat|syn-crossplane"'
+          receiver: team_default_schedar
+          repeat_interval: 60s
+        - matchers:
+            - 'syn_team = schedar'
+          receiver: team_default_schedar
 
 prometheus:
   prometheusSpec:

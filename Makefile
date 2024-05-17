@@ -172,3 +172,10 @@ unset-default-sc:
 	for sc in $$(kubectl get sc -o name) ; do \
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
+
+.PHONY: argocd
+argocd: export KUBECONFIG = $(KIND_KUBECONFIG)
+argocd:
+	helm repo add argo https://argoproj.github.io/argo-helm
+	helm upgrade --install --create-namespace --namespace argocd argocd argo/argo-cd
+	touch $@

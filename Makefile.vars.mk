@@ -9,7 +9,7 @@ komoplane_sentinel = $(kind_dir)/komoplane
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .
-PROJECT_NAME ?= kindev
+PROJECT_NAME ?= demo
 PROJECT_OWNER ?= vshn
 
 ## BUILD:docker
