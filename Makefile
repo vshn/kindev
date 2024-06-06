@@ -42,6 +42,7 @@ $(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
 	--set "args[1]='--enable-environment-configs'" \
+	--set "args[2]='--enable-usages'" \
 	--wait
 	@touch $@
 
