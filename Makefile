@@ -137,6 +137,7 @@ csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as de
 $(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(csi_sentinel): unset-default-sc
 	cd csi-host-path && \
+	echo $$KUBECONFIG && \
 	kubectl apply -f snapshot-controller.yaml && \
 	kubectl apply -f storageclass.yaml && \
 	./deploy.sh

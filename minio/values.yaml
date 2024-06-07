@@ -13,3 +13,4 @@ ingress:
   path: /
   hosts:
     - minio.127.0.0.1.nip.io
+    - minio.192.168.228.1.nip.io

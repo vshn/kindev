@@ -21,6 +21,11 @@ kind: kind-setup-ingress kind-load-image ## All-in-one kind target
 kind-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-setup: $(KIND_KUBECONFIG) ## Creates the kind cluster
 
+.PHONY: multi-kind-setup
+multi-kind-setup:
+	make crossplane-setup prometheus-setup -e KIND_KUBECONFIG=$(kind_dir)/kindev-control -e KIND_CLUSTER=kindev-control -e KIND_CONFIG=kind/config-control.yaml
+	make vshnpostgresql vshnredis -e KIND_KUBECONFIG=$(kind_dir)/kindev-worker -e KIND_CLUSTER=kindev-worker
+
 .PHONY: kind-setup-ingress
 kind-setup-ingress: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind cluster (localhost:8088)
@@ -37,6 +42,8 @@ kind-load-image: kind-setup build-docker ## Load the container image onto kind c
 kind-clean: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-clean: ## Removes the kind Cluster
 	@$(kind_bin) delete cluster --name $(KIND_CLUSTER) || true
+	@$(kind_bin) delete cluster --name $(KIND_CLUSTER)-worker || true
+	@$(kind_bin) delete cluster --name $(KIND_CLUSTER)-control || true
 	rm -rf $(kind_dir) $(kind_bin)
 
 $(KIND_KUBECONFIG): export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -44,8 +51,8 @@ $(KIND_KUBECONFIG): $(kind_bin)
 	$(kind_bin) create cluster \
 		--name $(KIND_CLUSTER) \
 		--image $(KIND_IMAGE) \
-		--config kind/config.yaml
-	$(kind_bin) get kubeconfig --name $(KIND_CLUSTER) > $(kind_dir)/kind-config
+		--config $(KIND_CONFIG)
+	$(kind_bin) get kubeconfig --name $(KIND_CLUSTER) > $(KIND_KUBECONFIG)
 	@kubectl version
 	@kubectl cluster-info
 	@kubectl config use-context kind-$(KIND_CLUSTER)
