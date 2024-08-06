@@ -45,6 +45,33 @@ mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin
 
 Minio console access: http://minio-gui.127.0.0.1.nip.io:8088
 
+## Vcluster
+
+The `make crossplane-setup` target will install Crossplane into a vcluster. This will simulate clusters where the control-plane and service clusters are split up.
+
+### How to use it in make
+
+If you need to install something in the control cluster in make, you can do it like this:
+
+```make
+.PHONY: app-setup
+app-setup:
+  $(vcluster_bin) connect controlplane --namespace vcluster
+  $install what you need
+  $(vcluster_bin) disconnect
+```
+
+### Access vcluster
+
+If you need access to the vcluster from outside make (for example, when applying the AppCat component or other things). Export the kind config and then:
+
+```bash
+kubectl config get-contexts
+# get the vcluster context
+# it's the one starting with vcluster_*
+kubectl config use-context vcluster_*...
+```
+
 ## Integration into other projects
 
 kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
