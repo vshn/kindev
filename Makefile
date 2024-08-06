@@ -173,3 +173,18 @@ unset-default-sc:
 	for sc in $$(kubectl get sc -o name) ; do \
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
+
+.PHONY: install-vcluster-bin
+install-vcluster-bin: $(vcluster_bin)
+
+$(vcluster_bin): export GOOS = $(shell go env GOOS)
+$(vcluster_bin): export GOARCH = $(shell go env GOARCH)
+$(vcluster_bin): export GOBIN = $(go_bin)
+$(vcluster_bin): | $(go_bin)
+	go install github.com/loft-sh/vcluster/cmd/vclusterctl@latest
+
+
+.PHONY: setup-vcluster
+setup-vcluster: export KUBECONFIG = $(KIND_KUBECONFIG)
+setup-vcluster:
+	$(vcluster_bin) create controlplane --namespace vcluster
