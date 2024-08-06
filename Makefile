@@ -184,7 +184,7 @@ $(vcluster_bin): | $(go_bin)
 	go install github.com/loft-sh/vcluster/cmd/vclusterctl@latest
 
 
-.PHONY: setup-vcluster
-setup-vcluster: export KUBECONFIG = $(KIND_KUBECONFIG)
-setup-vcluster:
+.PHONY: vcluster-setup
+vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+vcluster-setup:
 	$(vcluster_bin) create controlplane --namespace vcluster
