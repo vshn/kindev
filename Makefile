@@ -37,13 +37,15 @@ lint: ## All-in-one linting
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
+$(crossplane_sentinel): kind-setup csi-host-path-setup vcluster-setup
 	helm repo add crossplane https://charts.crossplane.io/stable --force-update
+	$(vcluster_bin) connect controlplane --namespace vcluster
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
 	--set "args[1]='--enable-environment-configs'" \
 	--set "args[2]='--enable-usages'" \
 	--wait
+	$(vcluster_bin) disconnect
 	@touch $@
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -132,6 +134,7 @@ $(prometheus_sentinel): kind-setup-ingress
 load-comp-image: ## Load the appcat-comp image if it exists
 	[[ "$$(docker images -q ghcr.io/vshn/appcat 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat || true
 
+.PHONY: csi-host-path-setup
 csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as default, this provider supports resizing
 
 $(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -173,3 +176,18 @@ unset-default-sc:
 	for sc in $$(kubectl get sc -o name) ; do \
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
+
+.PHONY: install-vcluster-bin
+install-vcluster-bin: $(vcluster_bin)
+
+$(vcluster_bin): export GOOS = $(shell go env GOOS)
+$(vcluster_bin): export GOARCH = $(shell go env GOARCH)
+$(vcluster_bin): export GOBIN = $(go_bin)
+$(vcluster_bin): | $(go_bin)
+	go install github.com/loft-sh/vcluster/cmd/vclusterctl@latest
+
+
+.PHONY: vcluster-setup
+vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+vcluster-setup: install-vcluster-bin
+	$(vcluster_bin) create controlplane --namespace vcluster --connect=false || true
