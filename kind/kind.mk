@@ -46,7 +46,7 @@ $(KIND_KUBECONFIG): $(kind_bin)
 		--name $(KIND_CLUSTER) \
 		--image $(KIND_IMAGE) \
 		--config kind/config.yaml
-	$(kind_bin) get kubeconfig --name $(KIND_CLUSTER) > $(kind_dir)/kind-config
+	ln -s $(KIND_KUBECONFIG) $(kind_dir)/kind-config
 	@kubectl version
 	@kubectl cluster-info
 	@kubectl config use-context kind-$(KIND_CLUSTER)

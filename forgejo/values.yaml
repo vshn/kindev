@@ -14,7 +14,7 @@ gitea:
   admin:
     # 'admin' is reserved and can't be used... 'gitea_admin' is the default.
     username: gitea_admin
-    password: admin
+    password: adminadmin
   config:
     repository:
       ENABLE_PUSH_CREATE_USER: 'true'

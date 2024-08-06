@@ -1,0 +1,26 @@
+# See https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+grafana:
+  enabled: false
+nodeExporter:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    # these will cause Prometheus to search in all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+
+# See https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-state-metrics
+kube-state-metrics:
+  metricLabelsAllowlist:
+    - namespaces=[*]
