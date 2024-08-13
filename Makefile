@@ -34,20 +34,8 @@ lint: ## All-in-one linting
 	@echo 'Check for uncommitted changes ...'
 	git diff --exit-code
 
-crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
-
-$(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
-	helm repo add crossplane https://charts.crossplane.io/stable --force-update
-	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
-	--set "args[0]='--debug'" \
-	--set "args[1]='--enable-environment-configs'" \
-	--set "args[2]='--enable-usages'" \
-	--wait
-	@touch $@
-
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-stackgres-setup: $(crossplane_sentinel) ## Install StackGres
+stackgres-setup: ## Install StackGres
 	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
 	helm upgrade --install --version 1.7.0 --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
 	kubectl -n stackgres wait --for condition=Available deployment/stackgres-operator --timeout 120s
@@ -74,13 +62,13 @@ stackgres-setup: $(crossplane_sentinel) ## Install StackGres
 	kubectl patch secrets --namespace stackgres stackgres-restapi-admin --type json -p "[{\"op\":\"add\",\"path\":\"/data/clearPassword\", \"value\":\"$${encoded}\"}]" | true
 
 certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-certmanager-setup: $(crossplane_sentinel)
+certmanager-setup:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
 
 minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-minio-setup: crossplane-setup ## Install Minio Crossplane implementation
+minio-setup:  ## Install Minio Crossplane implementation
 	helm repo add minio https://charts.min.io/ --force-update
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml

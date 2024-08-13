@@ -1,5 +1,4 @@
 ## These are some common variables for Make
-crossplane_sentinel = $(kind_dir)/crossplane-sentinel
 k8up_sentinel = $(kind_dir)/k8up-sentinel
 prometheus_sentinel = $(kind_dir)/prometheus-sentinel
 local_pv_sentinel = $(kind_dir)/local_pv
