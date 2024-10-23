@@ -51,7 +51,7 @@ $(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: kind-setup csi-host-path-setup ## Install StackGres
 	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
-	helm upgrade --install --version 1.7.0 --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
+	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
 	kubectl -n stackgres wait --for condition=Available deployment/stackgres-operator --timeout 120s
 
 	# wait max 60 seconds for secret to be created - it takes little bit longer now for secret to appear, therefore we need a mechanism to block execution until it appears
