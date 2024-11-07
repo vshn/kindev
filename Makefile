@@ -20,10 +20,10 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vshnpostgresql vshnredis
 
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup ## Install vshn postgres dependencies
+vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup netpols-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
-vshnredis: certmanager-setup k8up-setup ## Install vshn redis dependencies
+vshnredis: certmanager-setup k8up-setup netpols-setup ## Install vshn redis dependencies
 
 .PHONY: help
 help: ## Show this help
@@ -128,6 +128,7 @@ $(prometheus_sentinel): kind-setup-ingress
 		--values prometheus/values.yaml \
 		prometheus-community/kube-prometheus-stack
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
+	kubectl apply -f prometheus/netpol.yaml
 	@echo -e "***\n*** Installed Prometheus in http://prometheus.127.0.0.1.nip.io:8088/ and AlertManager in http://alertmanager.127.0.0.1.nip.io:8088/.\n***"
 	@touch $@
 
@@ -175,3 +176,17 @@ unset-default-sc:
 	for sc in $$(kubectl get sc -o name) ; do \
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
+
+netpols-setup: $(espejo_sentinel) $(netpols_sentinel) ## Install netpols to simulate appuio's netpols
+
+$(netpols_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(netpols_sentinel):
+	kubectl apply -f netpols
+	touch $@
+
+espejo-setup: $(espejo_sentinel)
+
+$(espejo_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(espejo_sentinel):
+	kubectl apply -f espejo
+	touch $@

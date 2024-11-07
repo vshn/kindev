@@ -1,0 +1,39 @@
+apiVersion: sync.appuio.ch/v1alpha1
+kind: SyncConfig
+metadata:
+  name: netpol-mirroring
+  namespace: system
+spec:
+  forceRecreate: true
+  namespaceSelector:
+    labelSelector:
+      matchExpressions:
+      - key: appcat.vshn.io/servicename
+        operator: Exists
+    ignoreNames:
+    - system
+  syncItems:
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: allow-from-same-namespace
+    spec:
+      ingress:
+      - from:
+        - podSelector: {}
+      podSelector: {}
+      policyTypes:
+      - Ingress
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: allow-from-other-namespaces
+    spec:
+      ingress:
+        - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: prometheus-system
+      podSelector: {}
+      policyTypes:
+      - Ingress

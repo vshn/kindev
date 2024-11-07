@@ -6,6 +6,8 @@ local_pv_sentinel = $(kind_dir)/local_pv
 csi_sentinel = $(kind_dir)/csi_provider
 metallb_sentinel = $(kind_dir)/metallb
 komoplane_sentinel = $(kind_dir)/komoplane
+netpols_sentinel = $(kind_dir)/netpols
+espejo_sentinel = $(kind_dir)/espejo
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .
@@ -18,7 +20,7 @@ DOCKER_CMD ?= docker
 ## KIND:setup
 
 # https://hub.docker.com/r/kindest/node/tags
-KIND_NODE_VERSION ?= v1.28.9
+KIND_NODE_VERSION ?= v1.29.7
 KIND_IMAGE ?= docker.io/kindest/node:$(KIND_NODE_VERSION)
 KIND_CMD ?= go run sigs.k8s.io/kind
 KIND_KUBECONFIG ?= $(kind_dir)/kind-kubeconfig-$(KIND_NODE_VERSION)
