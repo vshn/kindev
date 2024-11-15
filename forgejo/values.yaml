@@ -1,0 +1,38 @@
+redis-cluster:
+  enabled: false
+redis:
+  enabled: false
+postgresql:
+  enabled: false
+postgresql-ha:
+  enabled: false
+
+persistence:
+  enabled: false
+
+gitea:
+  admin:
+    # 'admin' is reserved and can't be used... 'gitea_admin' is the default.
+    username: gitea_admin
+    password: admin
+  config:
+    repository:
+      ENABLE_PUSH_CREATE_USER: 'true'
+      ENABLE_PUSH_CREATE_ORG: 'true'
+      DEFAULT_PUSH_CREATE_PRIVATE: 'false'
+    database:
+      DB_TYPE: sqlite3
+    session:
+      PROVIDER: memory
+    cache:
+      ADAPTER: memory
+    queue:
+      TYPE: level
+
+ingress:
+  enabled: true
+  hosts:
+    - host: forgejo.127.0.0.1.nip.io
+      paths:
+        - path: '/'
+          pathType: Prefix

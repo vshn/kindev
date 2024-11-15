@@ -20,10 +20,13 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vshnpostgresql vshnredis
 
 .PHONY: vshnpostgresql
-vshnpostgresql: certmanager-setup stackgres-setup prometheus-setup minio-setup metallb-setup netpols-setup ## Install vshn postgres dependencies
+vshnpostgresql: shared-setup stackgres-setup ## Install vshn postgres dependencies
 
 .PHONY: vshnredis
-vshnredis: certmanager-setup k8up-setup netpols-setup ## Install vshn redis dependencies
+vshnredis: shared-setup  ## Install vshn redis dependencies
+
+.PHONY: shared-setup ## Install dependencies shared between all services
+shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup
 
 .PHONY: help
 help: ## Show this help
@@ -50,7 +53,7 @@ $(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 stackgres-setup: kind-setup csi-host-path-setup ## Install StackGres
-	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
+	helm repo add stackgres-charts https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/ --force-update
 	helm upgrade --install --create-namespace --namespace stackgres stackgres-operator  stackgres-charts/stackgres-operator --values stackgres/values.yaml --wait
 	kubectl -n stackgres wait --for condition=Available deployment/stackgres-operator --timeout 120s
 
@@ -189,4 +192,27 @@ espejo-setup: $(espejo_sentinel)
 $(espejo_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(espejo_sentinel):
 	kubectl apply -f espejo
+	touch $@
+
+forgejo-setup: $(forgejo_sentinel)
+
+$(forgejo_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(forgejo_sentinel):
+	helm upgrade --install forgejo -f forgejo/values.yaml -n forgejo --create-namespace oci://code.forgejo.org/forgejo-helm/forgejo
+	@echo -e "***\n*** Installed forgejo in http://forgejo.127.0.0.1.nip.io:8088\n***"
+	@echo -e "***\n*** credentials: gitea_admin:admin\n***"
+	touch $@
+
+argocd-setup: $(argocd_sentinel)
+
+$(argocd_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(argocd_sentinel):
+	kubectl apply -k argocd/
+	# patch admin password to admin
+	kubectl -n argocd patch secret argocd-secret -p '{"stringData": { "admin.password": "$$2a$$10$$gHoKL/R2B4O.Mcygfke2juEullBDdANb3e8pex8yYJkzYS7A.8vnS", "admin.passwordMtime": "'$$(date +%FT%T%Z)'" }}'
+	kubectl -n argocd patch cm argocd-cmd-params-cm -p '{"data": { "server.insecure": "true" } }'
+	kubectl -n argocd patch cm argocd-cm -p '{"data": { "timeout.reconciliation": "30s" } }'
+	kubectl -n argocd rollout restart deployment argocd-server
+	@echo -e "***\n*** Installed argocd in http://argocd.127.0.0.1.nip.io:8088\n***"
+	@echo -e "***\n*** credentials: admin:admin\n***"
 	touch $@

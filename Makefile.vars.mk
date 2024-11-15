@@ -8,6 +8,8 @@ metallb_sentinel = $(kind_dir)/metallb
 komoplane_sentinel = $(kind_dir)/komoplane
 netpols_sentinel = $(kind_dir)/netpols
 espejo_sentinel = $(kind_dir)/espejo
+forgejo_sentinel = $(kind_dir)/forgejo
+argocd_sentinel = $(kind_dir)/argocd
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .
