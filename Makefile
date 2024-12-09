@@ -37,18 +37,20 @@ lint: ## All-in-one linting
 	@echo 'Check for uncommitted changes ...'
 	git diff --exit-code
 
-kind-storage: kind-setup csi-host-path-setup
+kind-storage: kind-setup csi-host-path-setup vcluster-setup
 
 crossplane-setup: $(crossplane_sentinel) ## Install local Kubernetes cluster and install Crossplane
 
 $(crossplane_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(crossplane_sentinel): kind-setup csi-host-path-setup load-comp-image
+$(crossplane_sentinel): kind-setup csi-host-path-setup
 	helm repo add crossplane https://charts.crossplane.io/stable --force-update
+	if $(vcluster); then $(vcluster_bin) connect controlplane --namespace vcluster; fi
 	helm upgrade --install crossplane --create-namespace --namespace syn-crossplane crossplane/crossplane \
 	--set "args[0]='--debug'" \
 	--set "args[1]='--enable-environment-configs'" \
 	--set "args[2]='--enable-usages'" \
 	--wait
+	if $(vcluster); then $(vcluster_bin) disconnect; fi
 	@touch $@
 
 stackgres-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -78,8 +80,21 @@ stackgres-setup: kind-setup csi-host-path-setup ## Install StackGres
 	encoded=$$(echo -n "$$NEW_PASSWORD" | base64) && \
 	kubectl patch secrets --namespace stackgres stackgres-restapi-admin --type json -p "[{\"op\":\"add\",\"path\":\"/data/clearPassword\", \"value\":\"$${encoded}\"}]" | true
 
-certmanager-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-certmanager-setup: kind-storage
+certmanager-setup: $(certmanager-sentinel)
+
+$(certmanager-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(certmanager-sentinel): kind-storage
+$(certmanager-sentinel):
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster;\
+		$(MAKE) certmanager-install; \
+		$(vcluster_bin) disconnect; \
+	fi
+	$(MAKE) certmanager-install
+	@touch $@
+
+certmanager-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+certmanager-install:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
@@ -123,34 +138,49 @@ prometheus-setup: $(prometheus_sentinel) ## Install Prometheus stack
 
 $(prometheus_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(prometheus_sentinel): kind-setup-ingress
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster; \
+		$(MAKE) prometheus-install -e PROM_VALUES=prometheus/values_vcluster.yaml; \
+		$(vcluster_bin) disconnect; \
+	fi
+	$(MAKE) prometheus-install
+	kubectl apply -f prometheus/netpol.yaml
+	@echo -e "***\n*** Installed Prometheus in http://prometheus.127.0.0.1.nip.io:8088/ and AlertManager in http://alertmanager.127.0.0.1.nip.io:8088/.\n***"
+	@touch $@
+
+prometheus-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+prometheus-install:
 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	helm upgrade --install kube-prometheus \
 		--create-namespace \
 		--namespace prometheus-system \
 		--wait \
-		--values prometheus/values.yaml \
+		--values ${PROM_VALUES} \
 		prometheus-community/kube-prometheus-stack
 	kubectl -n prometheus-system wait --for condition=Available deployment/kube-prometheus-kube-prome-operator --timeout 120s
-	kubectl apply -f prometheus/netpol.yaml
-	@echo -e "***\n*** Installed Prometheus in http://prometheus.127.0.0.1.nip.io:8088/ and AlertManager in http://alertmanager.127.0.0.1.nip.io:8088/.\n***"
-	@touch $@
 
 load-comp-image: ## Load the appcat-comp image if it exists
 	[[ "$$(docker images -q ghcr.io/vshn/appcat 2> /dev/null)" != "" ]] && kind load docker-image --name kindev ghcr.io/vshn/appcat || true
 
+.PHONY: csi-host-path-setup
 csi-host-path-setup: $(csi_sentinel) ## Setup csi-driver-host-path and set as default, this provider supports resizing
 
 $(csi_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(csi_sentinel): unset-default-sc
+	$(MAKE) csi-install
+	@touch $@
+
+csi-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+csi-install:
 	cd csi-host-path && \
 	kubectl apply -f snapshot-controller.yaml && \
 	kubectl apply -f storageclass.yaml && \
 	./deploy.sh
 	kubectl patch storageclass csi-hostpath-fast -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-	@touch $@
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
+	rm $(vcluster_bin)
 
 metallb-setup: $(metallb_sentinel) ## Install metallb as loadbalancer
 
@@ -194,16 +224,16 @@ $(espejo_sentinel):
 	kubectl apply -f espejo
 	touch $@
 
-forgejo-setup: $(forgejo_sentinel)
+forgejo-setup: $(forgejo_sentinel) ## Install local forgejo instance to host argocd repos
 
 $(forgejo_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(forgejo_sentinel):
 	helm upgrade --install forgejo -f forgejo/values.yaml -n forgejo --create-namespace oci://code.forgejo.org/forgejo-helm/forgejo
 	@echo -e "***\n*** Installed forgejo in http://forgejo.127.0.0.1.nip.io:8088\n***"
-	@echo -e "***\n*** credentials: gitea_admin:admin\n***"
+	@echo -e "***\n*** credentials: gitea_admin:adminadmin\n***"
 	touch $@
 
-argocd-setup: $(argocd_sentinel)
+argocd-setup: $(argocd_sentinel) ## Install argocd to automagically apply our component
 
 $(argocd_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(argocd_sentinel):
@@ -213,6 +243,61 @@ $(argocd_sentinel):
 	kubectl -n argocd patch cm argocd-cmd-params-cm -p '{"data": { "server.insecure": "true" } }'
 	kubectl -n argocd patch cm argocd-cm -p '{"data": { "timeout.reconciliation": "30s" } }'
 	kubectl -n argocd rollout restart deployment argocd-server
+	if $(vcluster); then \
+		$(MAKE) argocd-vcluster-auth ; \
+	fi
 	@echo -e "***\n*** Installed argocd in http://argocd.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** credentials: admin:admin\n***"
 	touch $@
+
+.PHONY: argocd-vcluster-auth
+argocd-vcluster-auth: export KUBECONFIG = $(KIND_KUBECONFIG) ## Re-create argocd authentication for the vcluster, in case it breaks
+argocd-vcluster-auth: vcluster-setup
+argocd-vcluster-auth: vcluster=true
+argocd-vcluster-auth:
+	# The usualy kubeconfig export doesn't work here for some reason...
+	export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	$(vcluster_bin) connect controlplane --namespace vcluster; \
+	kubectl create serviceaccount argocd; \
+	kubectl create clusterrolebinding argocd_admin --clusterrole=cluster-admin --serviceaccount=default:argocd ; \
+	kubectl apply -f argocd/service-account-secret.yaml ; \
+	sleep 1 ; \
+	export token=$$(kubectl get secret argocd-token -oyaml | yq '.data.token' | base64 -d) ; \
+	$(vcluster_bin) disconnect; \
+	kubectl delete -f argocd/controlplanesecret.yaml ; \
+	cat argocd/controlplanesecret.yaml | yq '.stringData.config = "{ \"bearerToken\":\""+ strenv(token) +"\", \"tlsClientConfig\": { \"insecure\": true }}"' | kubectl apply -f -
+
+.PHONY: install-vcluster-bin
+install-vcluster-bin: $(vcluster_bin)
+
+$(vcluster_bin): export GOOS = $(shell go env GOOS)
+$(vcluster_bin): export GOARCH = $(shell go env GOARCH)
+$(vcluster_bin): export GOBIN = $(go_bin)
+$(vcluster_bin): | $(go_bin)
+	if $(vcluster); then \
+		go install github.com/loft-sh/vcluster/cmd/vclusterctl@latest; \
+	fi
+
+
+.PHONY: vcluster-setup
+vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
+vcluster-setup: install-vcluster-bin
+	if $(vcluster); then \
+		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml || true; \
+	fi
+
+.PHONY: vcluster-in-cluster-kubeconfig
+vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use within the main cluster
+vcluster-in-cluster-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"'
+
+.PHONY: vcluster-local-cluster-kubeconfig
+vcluster-local-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use on the local machine
+vcluster-local-cluster-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq
+
+.PHONY: vcluster-clean
+vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
+	$(vcluster_bin) rm controlplane || true

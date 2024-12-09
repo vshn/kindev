@@ -1,0 +1,6 @@
+# Vcluster uses sqlite by default and basically just dies with our dev env
+controlPlane:
+  backingStore:
+    etcd:
+      deploy:
+        enabled: true

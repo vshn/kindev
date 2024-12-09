@@ -47,6 +47,38 @@ mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin
 
 Minio console access: http://minio-gui.127.0.0.1.nip.io:8088
 
+## Vcluster
+
+To toggle the vcluster support please use `-e vcluster=true`. Any make target that has support for the vcluster will then automatically use the vcluster.
+
+There are also some helper targets for the vcluster:
+* vcluster-clean: will remove the vluster. Helpful if Crossplane broke completely
+* vcluster-in-cluster-kubeconfig: generates a kubeconfig that can be used from within the main cluster. E.g. when deploying the controller or sli-exporter so it can connect to the control plane.
+* vcluster-local-cluster-kubeconfig: same as the above, but will point to the vcluster proxy endpoint. Useful for debugging purpose.
+
+### How to use it in make
+
+If you need to install something in the control cluster in make, you can do it like this:
+
+```make
+.PHONY: app-setup
+app-setup:
+  $(vcluster_bin) connect controlplane --namespace vcluster
+  $install what you need
+  $(vcluster_bin) disconnect
+```
+
+### Access vcluster
+
+If you need access to the vcluster from outside make (for example, when applying the AppCat component or other things). Export the kind config and then:
+
+```bash
+kubectl config get-contexts
+# get the vcluster context
+# it's the one starting with vcluster_*
+kubectl config use-context vcluster_*...
+```
+
 ## Integration into other projects
 
 kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
