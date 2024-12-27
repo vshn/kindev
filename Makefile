@@ -180,7 +180,7 @@ csi-install:
 
 .PHONY: clean
 clean: kind-clean ## Clean up local dev environment
-	rm $(vcluster_bin)
+	rm -f $(vcluster_bin)
 
 metallb-setup: $(metallb_sentinel) ## Install metallb as loadbalancer
 
