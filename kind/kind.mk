@@ -36,6 +36,7 @@ kind-load-image: kind-setup build-docker ## Load the container image onto kind c
 
 .PHONY: kind-clean
 kind-clean: export KUBECONFIG = $(KIND_KUBECONFIG)
+kind-clean: $(kind_bin)
 kind-clean: ## Removes the kind Cluster
 	@$(kind_bin) delete cluster --name $(KIND_CLUSTER) || true
 	rm -rf $(kind_dir) $(kind_bin)
@@ -46,7 +47,7 @@ $(KIND_KUBECONFIG): $(kind_bin)
 		--name $(KIND_CLUSTER) \
 		--image $(KIND_IMAGE) \
 		--config kind/config.yaml
-	ln -s $(KIND_KUBECONFIG) $(kind_dir)/kind-config
+	cp $(KIND_KUBECONFIG) $(kind_dir)/kind-config
 	@kubectl version
 	@kubectl cluster-info
 	@kubectl config use-context kind-$(KIND_CLUSTER)
