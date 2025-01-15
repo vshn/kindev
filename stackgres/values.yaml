@@ -1,11 +1,8 @@
-# Vcluster uses sqlite by default and basically just dies with our dev env
-controlPlane:
-  backingStore:
-    etcd:
-      deploy:
-        enabled: true
-networking:
-  replicateServices:
-    fromHost:
-    - from: minio/minio-server
-      to: minio/minio-server
+cert:
+  certManager:
+    autoConfigure: true
+operator:
+  annotations:
+    # This makes sure we redeploy stackgres if we change the cert config
+    cert-config: >
+      ${stackgres_operator:helmValues:cert}

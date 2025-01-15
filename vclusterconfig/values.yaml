@@ -9,3 +9,5 @@ networking:
     fromHost:
     - from: minio/minio-server
       to: minio/minio-server
+    - from: default/kubernetes
+      to: default/kubernetes-host
