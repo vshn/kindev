@@ -4,3 +4,8 @@ controlPlane:
     etcd:
       deploy:
         enabled: true
+networking:
+  replicateServices:
+    fromHost:
+    - from: minio/minio-server
+      to: minio/minio-server
