@@ -305,6 +305,12 @@ vcluster-local-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 | yq
 
+.PHONY: vcluster-host-kubeconfig
+vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster
+vcluster-host-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	cat .kind/kind-config | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"' | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)'
+
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
 	$(vcluster_bin) rm controlplane || true
