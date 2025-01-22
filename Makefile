@@ -20,7 +20,7 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vshnpostgresql vshnredis
 
 .PHONY: vcluster
-vcluster=true
+vcluster: vcluster=true
 vcluster: vshnall
 
 .PHONY: vshnpostgresql
