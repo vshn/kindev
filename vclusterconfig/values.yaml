@@ -1,6 +1,16 @@
 # Vcluster uses sqlite by default and basically just dies with our dev env
 controlPlane:
+  proxy:
+    extraSANs:
+    - vcluster.127.0.0.1.nip.io
   backingStore:
     etcd:
       deploy:
         enabled: true
+networking:
+  replicateServices:
+    fromHost:
+    - from: minio/minio-server
+      to: minio/minio-server
+    - from: default/kubernetes
+      to: default/kubernetes-host

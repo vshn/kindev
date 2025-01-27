@@ -17,7 +17,16 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnall
+vshnall: vcluster=true
 vshnall: vshnpostgresql vshnredis
+
+.PHONY: converged
+converged: vcluster=false
+converged: vshnpostgresql vshnredis
+
+.PHONY: vcluster
+vcluster: vcluster=true
+vcluster: vshnall
 
 .PHONY: vshnpostgresql
 vshnpostgresql: shared-setup stackgres-setup ## Install vshn postgres dependencies
@@ -281,22 +290,31 @@ $(vcluster_bin): | $(go_bin)
 
 .PHONY: vcluster-setup
 vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-vcluster-setup: install-vcluster-bin
+vcluster-setup: install-vcluster-bin metallb-setup
 	if $(vcluster); then \
-		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml || true; \
+		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose || true; \
+		kubectl apply -f vclusterconfig/ingress.yaml; \
+		$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 > .kind/vcluster-config; \
+		kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type "json" -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'; \
 	fi
 
 .PHONY: vcluster-in-cluster-kubeconfig
 vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use within the main cluster
 vcluster-in-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
-	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"'
+	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://controlplane.vcluster | yq
 
 .PHONY: vcluster-local-cluster-kubeconfig
 vcluster-local-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use on the local machine
 vcluster-local-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
-	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq
+	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 | yq
+
+.PHONY: vcluster-host-kubeconfig
+vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster
+vcluster-host-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	cat .kind/kind-config | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"' | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)'
 
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
