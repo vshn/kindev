@@ -200,7 +200,9 @@ $(metallb_sentinel):
 		--for=condition=ready pod \
 		--selector=app=metallb \
 		--timeout=90s
-	kubectl apply -f metallb/config.yaml
+	HOSTIP=$$(docker inspect kindev-control-plane | jq -r '.[0].NetworkSettings.Networks.kind.Gateway') && \
+	export range="$${HOSTIP}00-$${HOSTIP}50" && \
+	cat metallb/config.yaml | cat metallb/config.yaml| yq 'select(document_index == 0) | .spec.addresses = [strenv(range)]' | kubectl apply -f -
 	touch $@
 
 komoplane-setup: $(komoplane_sentinel) ## Install komoplane crossplane troubleshooter
