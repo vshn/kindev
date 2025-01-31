@@ -116,6 +116,12 @@ minio-setup: kind-storage ## Install Minio Crossplane implementation
 	kubectl apply -f minio/gui-ingress.yaml
 	kubectl create ns syn-crossplane || true
 	kubectl apply -f minio/credentials.yaml
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster; \
+		kubectl create ns syn-crossplane || true ; \
+		kubectl apply -f minio/credentials.yaml ; \
+		$(vcluster_bin) disconnect; \
+	fi
 	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 	@echo -e "***\n*** console access http://minio-gui.127.0.0.1.nip.io:8088\n***"
@@ -203,6 +209,7 @@ $(metallb_sentinel):
 	HOSTIP=$$(docker inspect kindev-control-plane | jq -r '.[0].NetworkSettings.Networks.kind.Gateway') && \
 	export range="$${HOSTIP}00-$${HOSTIP}50" && \
 	cat metallb/config.yaml | cat metallb/config.yaml| yq 'select(document_index == 0) | .spec.addresses = [strenv(range)]' | kubectl apply -f -
+	cat metallb/config.yaml | cat metallb/config.yaml| yq 'select(document_index == 1)' | kubectl apply -f -
 	touch $@
 
 komoplane-setup: $(komoplane_sentinel) ## Install komoplane crossplane troubleshooter

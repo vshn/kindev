@@ -50,7 +50,7 @@ Minio console access: http://minio-gui.127.0.0.1.nip.io:8088
 
 ## Vcluster
 
-There's a dedicated `vlcuster` target which will run `vshnall` but with vcluster config enabled. It will distribute all necessary things to the right instances.
+`vshnall` will now run in a non-converged setup by default. If you want to have a converged setup, please run the target `converged`.
 
 There are also some helper targets for the vcluster:
 * vcluster-clean: will remove the vluster. Helpful if Crossplane broke completely
