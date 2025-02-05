@@ -17,7 +17,16 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnall
+vshnall: vcluster=true
 vshnall: vshnpostgresql vshnredis
+
+.PHONY: converged
+converged: vcluster=false
+converged: vshnpostgresql vshnredis
+
+.PHONY: vcluster
+vcluster: vcluster=true
+vcluster: vshnall
 
 .PHONY: vshnpostgresql
 vshnpostgresql: shared-setup stackgres-setup ## Install vshn postgres dependencies
@@ -107,6 +116,12 @@ minio-setup: kind-storage ## Install Minio Crossplane implementation
 	kubectl apply -f minio/gui-ingress.yaml
 	kubectl create ns syn-crossplane || true
 	kubectl apply -f minio/credentials.yaml
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster; \
+		kubectl create ns syn-crossplane || true ; \
+		kubectl apply -f minio/credentials.yaml ; \
+		$(vcluster_bin) disconnect; \
+	fi
 	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 	@echo -e "***\n*** console access http://minio-gui.127.0.0.1.nip.io:8088\n***"
@@ -191,7 +206,10 @@ $(metallb_sentinel):
 		--for=condition=ready pod \
 		--selector=app=metallb \
 		--timeout=90s
-	kubectl apply -f metallb/config.yaml
+	HOSTIP=$$(docker inspect kindev-control-plane | jq -r '.[0].NetworkSettings.Networks.kind.Gateway') && \
+	export range="$${HOSTIP}00-$${HOSTIP}50" && \
+	cat metallb/config.yaml | cat metallb/config.yaml| yq 'select(document_index == 0) | .spec.addresses = [strenv(range)]' | kubectl apply -f -
+	cat metallb/config.yaml | cat metallb/config.yaml| yq 'select(document_index == 1)' | kubectl apply -f -
 	touch $@
 
 komoplane-setup: $(komoplane_sentinel) ## Install komoplane crossplane troubleshooter
@@ -281,22 +299,31 @@ $(vcluster_bin): | $(go_bin)
 
 .PHONY: vcluster-setup
 vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-vcluster-setup: install-vcluster-bin
-	if $(vcluster); then \
-		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml || true; \
+vcluster-setup: install-vcluster-bin metallb-setup
+	if ! ($(vcluster_bin) list | grep controlplane ) && $(vcluster) ; then \
+		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose ; \
+		kubectl apply -f vclusterconfig/ingress.yaml; \
+		$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 > .kind/vcluster-config; \
+		kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type "json" -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'; \
 	fi
 
 .PHONY: vcluster-in-cluster-kubeconfig
 vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use within the main cluster
 vcluster-in-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
-	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"'
+	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://controlplane.vcluster | yq
 
 .PHONY: vcluster-local-cluster-kubeconfig
 vcluster-local-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use on the local machine
 vcluster-local-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
-	$(vcluster_bin) connect controlplane --namespace vcluster --print | yq
+	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 | yq
+
+.PHONY: vcluster-host-kubeconfig
+vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster
+vcluster-host-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	cat .kind/kind-config | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"' | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)'
 
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster

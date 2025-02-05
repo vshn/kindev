@@ -9,17 +9,10 @@ on:
       - master
 
 jobs:
-  vshnpostgresql:
+  vshnall:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run vshnpostgresql
-        run: make vshnpostgresql
-  vshnredis:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Run vshnredis
-        run: make vshnredis
+      - name: Run vshnall
+        run: make vshnall

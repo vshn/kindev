@@ -38,6 +38,7 @@ Currently following apps are configured to use the ingress:
 - [Komoplane](https://github.com/komodorio/komoplane) (make komoplane-setup): http://komoplane.127.0.0.1.nip.io:8088/
 - Forgejo: http://forgejo.127.0.0.1.nip.io:8088/
 - ArgoCD: http://argocd.127.0.0.1.nip.io:8088/
+- Vcluster: https://vcluster.127.0.0.1.nip.io:8443/
 
 For minio access from the localhost just use this alias:
 
@@ -49,12 +50,13 @@ Minio console access: http://minio-gui.127.0.0.1.nip.io:8088
 
 ## Vcluster
 
-To toggle the vcluster support please use `-e vcluster=true`. Any make target that has support for the vcluster will then automatically use the vcluster.
+`vshnall` will now run in a non-converged setup by default. If you want to have a converged setup, please run the target `converged`.
 
 There are also some helper targets for the vcluster:
 * vcluster-clean: will remove the vluster. Helpful if Crossplane broke completely
+* vcluster-host-kubeconfig: generates a kubeconfig that points from the vcluster to the host cluster. Used mainly for development in the component.
 * vcluster-in-cluster-kubeconfig: generates a kubeconfig that can be used from within the main cluster. E.g. when deploying the controller or sli-exporter so it can connect to the control plane.
-* vcluster-local-cluster-kubeconfig: same as the above, but will point to the vcluster proxy endpoint. Useful for debugging purpose.
+* vcluster-local-cluster-kubeconfig: same as the above, but will point to the vcluster ingress endpoint. Useful for development as claims need to be applied to the service instance.
 
 ### How to use it in make
 
