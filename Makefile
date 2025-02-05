@@ -300,8 +300,8 @@ $(vcluster_bin): | $(go_bin)
 .PHONY: vcluster-setup
 vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 vcluster-setup: install-vcluster-bin metallb-setup
-	if $(vcluster); then \
-		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose || true; \
+	if ! ($(vcluster_bin) list | grep controlplane ) && $(vcluster) ; then \
+		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose ; \
 		kubectl apply -f vclusterconfig/ingress.yaml; \
 		$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 > .kind/vcluster-config; \
 		kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type "json" -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'; \
