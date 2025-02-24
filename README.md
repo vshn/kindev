@@ -8,6 +8,7 @@ Crossplane development environment using kind (Kubernetes-in-Docker).
 * `helm` v3
 * `go` (or alternatively `kind`)
 * `docker`
+* `yq` (The [Go variant](https://archlinux.org/packages/extra/x86_64/go-yq/) of it)
 
 ## Getting started
 
@@ -32,7 +33,7 @@ The kind cluster features an ingress controller, that listens on `:8088`.
 
 Currently following apps are configured to use the ingress:
 
-- Promethues: http://prometheus.127.0.0.1.nip.io:8088/
+- Prometheus: http://prometheus.127.0.0.1.nip.io:8088/
 - Alertmanager: http://alertmanager.127.0.0.1.nip.io:8088/
 - Minio: http://minio.127.0.0.1.nip.io:8088/
 - [Komoplane](https://github.com/komodorio/komoplane) (make komoplane-setup): http://komoplane.127.0.0.1.nip.io:8088/
@@ -83,7 +84,7 @@ kubectl config use-context vcluster_*...
 
 ## Integration into other projects
 
-kindev is intended to be used by Crossplane providers as a developement and test environment. It can be tied into other projects via a git submodule.
+kindev is intended to be used by Crossplane providers as a development and test environment. It can be tied into other projects via a git submodule.
 
 Run inside the git repository of your project:
 
@@ -118,3 +119,7 @@ jobs:
       - name: Your test
         run: kubectl ...
 ```
+
+## Arch Linux rootless Podman
+
+As outlined in [the kind documentation](https://kind.sigs.k8s.io/docs/user/rootless/) set `KIND_EXPERIMENTAL_PROVIDER=podman` if rootless Podman is in use.
