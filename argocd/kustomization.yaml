@@ -6,3 +6,7 @@ resources:
 - ./ns.yaml
 - ./install.yaml
 - ./ingress.yaml
+
+images:
+- name: quay.io/argoproj/argocd
+  newTag: v2.14.2
