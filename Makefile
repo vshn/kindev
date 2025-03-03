@@ -307,23 +307,37 @@ vcluster-setup: install-vcluster-bin metallb-setup
 		kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type "json" -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'; \
 	fi
 
-.PHONY: vcluster-in-cluster-kubeconfig
-vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use within the main cluster
-vcluster-in-cluster-kubeconfig:
+.PHONY: vcluster-in-cluster-kubeconfig-admin
+vcluster-in-cluster-kubeconfig-admin: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints a kubeconfig to use from the host cluster to the vcluster, it uses an admin account
+vcluster-in-cluster-kubeconfig-admin:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://controlplane.vcluster | yq
 
-.PHONY: vcluster-local-cluster-kubeconfig
-vcluster-local-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use on the local machine
-vcluster-local-cluster-kubeconfig:
+.PHONY: vcluster-local-cluster-kubeconfig-admin
+vcluster-local-cluster-kubeconfig-admin: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out a kubeconfig for use on the local machine, it uses an admin account
+vcluster-local-cluster-kubeconfig-admin:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 | yq
 
-.PHONY: vcluster-host-kubeconfig
-vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster
-vcluster-host-kubeconfig:
+.PHONY: vcluster-host-kubeconfig-admin
+vcluster-host-kubeconfig-admin: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster, it uses an admin account
+vcluster-host-kubeconfig-admin:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	cat .kind/kind-config | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"' | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)'
+
+.PHONY: vcluster-in-cluster-kubeconfig
+vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints a kubeconfig to use from the host cluster to the vcluster, it uses the service account provisioned by component-appcat
+vcluster-in-cluster-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	$(vcluster_bin) connect controlplane --namespace vcluster > /dev/null; \
+	kubectl view-serviceaccount-kubeconfig -n syn-appcat appcat-service-cluster | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"' ; \
+	$(vcluster_bin) disconnect > /dev/null
+
+.PHONY: vcluster-host-kubeconfig
+vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster, it uses the service account provisioned by component-appcat
+vcluster-host-kubeconfig:
+	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
+	kubectl view-serviceaccount-kubeconfig -n syn-appcat appcat-control-plane | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)' | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"'
 
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
