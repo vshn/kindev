@@ -293,7 +293,7 @@ $(vcluster_bin): export GOARCH = $(shell go env GOARCH)
 $(vcluster_bin): export GOBIN = $(go_bin)
 $(vcluster_bin): | $(go_bin)
 	if $(vcluster); then \
-		go install github.com/loft-sh/vcluster/cmd/vclusterctl@latest; \
+		go install github.com/loft-sh/vcluster/cmd/vclusterctl@v0.24.0; \
 	fi
 
 
