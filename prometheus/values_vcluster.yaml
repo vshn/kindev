@@ -19,6 +19,7 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    maximumStartupDurationSeconds: 60
 
 # See https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-state-metrics
 kube-state-metrics:

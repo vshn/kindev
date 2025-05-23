@@ -23,6 +23,7 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    maximumStartupDurationSeconds: 60
   ingress:
     enabled: true
     hosts:
