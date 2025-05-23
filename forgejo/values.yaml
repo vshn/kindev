@@ -29,6 +29,8 @@ gitea:
     queue:
       TYPE: level
 
+replicaCount: 1
+
 ingress:
   enabled: true
   hosts:
