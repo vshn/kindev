@@ -48,6 +48,7 @@ $(KIND_KUBECONFIG): $(kind_bin)
 		--image $(KIND_IMAGE) \
 		--config kind/config.yaml
 	cp $(KIND_KUBECONFIG) $(kind_dir)/kind-config
+	kubectl taint nodes --all node-role.kubernetes.io/control-plane- node-role.kubernetes.io/master- || true
 	@kubectl version
 	@kubectl cluster-info
 	@kubectl config use-context kind-$(KIND_CLUSTER)
