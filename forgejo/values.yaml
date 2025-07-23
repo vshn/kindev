@@ -22,6 +22,7 @@ gitea:
       DEFAULT_PUSH_CREATE_PRIVATE: 'false'
     database:
       DB_TYPE: sqlite3
+      SQLITE_JOURNAL_MODE: WAL
     session:
       PROVIDER: memory
     cache:
