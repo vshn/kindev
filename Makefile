@@ -20,6 +20,10 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vcluster=true
 vshnall: vshnpostgresql vshnredis
 
+.PHONY: spks
+spks: vcluster=true
+spks: spks-setup
+
 .PHONY: converged
 converged: vcluster=false
 converged: vshnpostgresql vshnredis
@@ -36,6 +40,9 @@ vshnredis: shared-setup  ## Install vshn redis dependencies
 
 .PHONY: shared-setup ## Install dependencies shared between all services
 shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup
+
+.PHONY: spks-setup ## Install dependencies for spks
+spks-setup: shared-setup secret-generator-setup mariadb-operator-setup
 
 .PHONY: help
 help: ## Show this help
@@ -89,11 +96,11 @@ stackgres-setup: kind-setup csi-host-path-setup ## Install StackGres
 	encoded=$$(echo -n "$$NEW_PASSWORD" | base64) && \
 	kubectl patch secrets --namespace stackgres stackgres-restapi-admin --type json -p "[{\"op\":\"add\",\"path\":\"/data/clearPassword\", \"value\":\"$${encoded}\"}]" | true
 
-certmanager-setup: $(certmanager-sentinel)
+certmanager-setup: $(certmanager_sentinel)
 
-$(certmanager-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(certmanager-sentinel): kind-storage
-$(certmanager-sentinel):
+$(certmanager_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(certmanager_sentinel): kind-storage
+$(certmanager_sentinel):
 	if $(vcluster); then \
 		$(vcluster_bin) connect controlplane --namespace vcluster;\
 		$(MAKE) certmanager-install; \
@@ -108,8 +115,9 @@ certmanager-install:
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
 
-minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-minio-setup: kind-storage ## Install Minio Crossplane implementation
+minio-setup: $(minio_sentinel)
+$(minio_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(minio_sentinel): kind-storage ## Install Minio Crossplane implementation
 	helm repo add minio https://charts.min.io/ --force-update
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml
@@ -125,6 +133,7 @@ minio-setup: kind-storage ## Install Minio Crossplane implementation
 	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 	@echo -e "***\n*** console access http://minio-gui.127.0.0.1.nip.io:8088\n***"
+	@touch $@
 
 k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operator
 
@@ -139,6 +148,42 @@ $(k8up_sentinel): kind-setup
 		--values k8up/values.yaml \
 		k8up-io/k8up
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
+	@touch $@
+
+secret-generator-setup: $(secret_generator_sentinel)
+
+$(secret_generator_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(secret_generator_sentinel):
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster; \
+		$(MAKE) secret-generator-install; \
+		$(vcluster_bin) disconnect; \
+	fi
+	$(MAKE) secret-generator-install
+	@touch $@
+
+secret-generator-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+secret-generator-install:
+	helm repo add mittwald https://helm.mittwald.de --force-update
+	helm upgrade --version 3.4.1 --values secret-generator/values.yaml --namespace syn-secret-generator --create-namespace --install kubernetes-secret-generator mittwald/kubernetes-secret-generator --wait
+
+mariadb-operator-setup: $(mariadb_operator_sentinel)
+
+$(mariadb_operator-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(mariadb_operator_sentinel):
+	helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator --force-update
+	helm upgrade --install mariadb-operator-crds \
+		--version 25.8.2 \
+		--wait \
+		mariadb-operator/mariadb-operator-crds
+	helm upgrade --install mariadb-operator \
+		--create-namespace \
+		--namespace syn-mariadb-operator \
+		--version 25.8.2 \
+  		--set metrics.enabled=true \
+		--set webhook.cert.certManager.enabled=true \
+		--wait \
+		mariadb-operator/mariadb-operator
 	@touch $@
 
 local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features

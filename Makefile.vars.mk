@@ -1,8 +1,8 @@
 ## These are some common variables for Make
 crossplane_sentinel = $(kind_dir)/crossplane-sentinel
 certmanager-sentinel = $(kind_dir)/certmanager-sentinel
-k8up_sentinel = $(kind_dir)/k8up-sentinel
-prometheus_sentinel = $(kind_dir)/prometheus-sentinel
+k8up-sentinel = $(kind_dir)/k8up-sentinel
+prometheus-sentinel = $(kind_dir)/prometheus-sentinel
 local_pv_sentinel = $(kind_dir)/local_pv
 csi_sentinel = $(kind_dir)/csi_provider
 metallb_sentinel = $(kind_dir)/metallb
@@ -11,6 +11,10 @@ netpols_sentinel = $(kind_dir)/netpols
 espejo_sentinel = $(kind_dir)/espejo
 forgejo_sentinel = $(kind_dir)/forgejo
 argocd_sentinel = $(kind_dir)/argocd
+secret-generator-sentinel = $(kind_dir)/secret-generator-sentinel
+mariadb-operator-sentinel = $(kind_dir)/mariadb-operator-sentinel
+minio-sentinel = $(kind_dir)/minio-sentinel
+
 enable_xfn = true
 
 PROJECT_ROOT_DIR = .
