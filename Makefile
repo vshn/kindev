@@ -20,6 +20,10 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vcluster=true
 vshnall: vshnpostgresql vshnredis
 
+.PHONY: spks
+spks: vcluster=true
+spks: spks-setup
+
 .PHONY: converged
 converged: vcluster=false
 converged: vshnpostgresql vshnredis
@@ -36,6 +40,9 @@ vshnredis: shared-setup  ## Install vshn redis dependencies
 
 .PHONY: shared-setup ## Install dependencies shared between all services
 shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup
+
+.PHONY: spks-setup ## Install dependencies for spks
+spks-setup: shared-setup secret-generator-setup
 
 .PHONY: help
 help: ## Show this help
@@ -284,6 +291,23 @@ argocd-vcluster-auth:
 	$(vcluster_bin) disconnect; \
 	kubectl delete -f argocd/controlplanesecret.yaml ; \
 	cat argocd/controlplanesecret.yaml | yq '.stringData.config = "{ \"bearerToken\":\""+ strenv(token) +"\", \"tlsClientConfig\": { \"insecure\": true }}"' | kubectl apply -f -
+
+secret-generator-setup: $(secret-generator-sentinel)
+
+$(secret-generator-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(secret-generator-sentinel): kind-storage
+$(secret-generator-sentinel):
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster;\
+		$(MAKE) secret-generator-install; \
+		$(vcluster_bin) disconnect; \
+	fi
+	@touch $@
+
+secret-generator-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+secret-generator-install:
+	helm repo add stackgres-charts https://helm.mittwald.de --force-update
+	helm upgrade --version 3.4.1 --install kubernetes-secret-generator mittwald/kubernetes-secret-generator --wait
 
 .PHONY: install-vcluster-bin
 install-vcluster-bin: $(vcluster_bin)
