@@ -28,7 +28,7 @@ kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind 
 	kubectl -n ingress-nginx wait --for condition=Ready pods -l app.kubernetes.io/component=controller --timeout 180s
 	# We need to restart nginx, because it can't properly find the endpoints otherwise...
 	kubectl -n ingress-nginx rollout restart deployment ingress-nginx-controller
-	kubectl -n ingress-nginx wait --for condition=Ready pods -l app.kubernetes.io/component=controller --timeout 180s
+	kubectl -n ingress-nginx wait --for=condition=Available deployment/ingress-nginx-controller --timeout=180s
 
 .PHONY: kind-load-image
 # We fix the arch to linux/amd64 since kind runs in amd64 even on Mac/arm.
