@@ -1,5 +1,8 @@
 # Vcluster uses sqlite by default and basically just dies with our dev env
 controlPlane:
+  statefulSet:
+    image:
+      tag: 0.27.0
   proxy:
     extraSANs:
     - vcluster.127.0.0.1.nip.io
