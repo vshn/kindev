@@ -20,6 +20,10 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 vshnall: vcluster=true
 vshnall: vshnpostgresql vshnredis
 
+.PHONY: spks
+spks: vcluster=true
+spks: spks-setup
+
 .PHONY: converged
 converged: vcluster=false
 converged: vshnpostgresql vshnredis
@@ -36,6 +40,9 @@ vshnredis: shared-setup  ## Install vshn redis dependencies
 
 .PHONY: shared-setup ## Install dependencies shared between all services
 shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup
+
+.PHONY: spks-setup ## Install dependencies for spks
+spks-setup: shared-setup secret-generator-setup mariadb-operator-setup
 
 .PHONY: help
 help: ## Show this help
@@ -107,9 +114,10 @@ certmanager-install:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
-
-minio-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
-minio-setup: kind-storage ## Install Minio Crossplane implementation
+	
+minio-setup: $(minio-sentinel)
+$(minio-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(minio-sentinel): kind-storage ## Install Minio Crossplane implementation
 	helm repo add minio https://charts.min.io/ --force-update
 	helm upgrade --install --create-namespace --namespace minio minio --version 5.0.7 minio/minio \
 	--values minio/values.yaml
@@ -125,11 +133,12 @@ minio-setup: kind-storage ## Install Minio Crossplane implementation
 	@echo -e "***\n*** Installed minio in http://minio.127.0.0.1.nip.io:8088\n***"
 	@echo -e "***\n*** use with mc:\n mc alias set localnip http://minio.127.0.0.1.nip.io:8088 minioadmin minioadmin\n***"
 	@echo -e "***\n*** console access http://minio-gui.127.0.0.1.nip.io:8088\n***"
+	@touch $@
 
 k8up-setup: minio-setup prometheus-setup $(k8up_sentinel) ## Install K8up operator
 
-$(k8up_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(k8up_sentinel): kind-setup
+$(k8up-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(k8up-sentinel): kind-setup
 	helm repo add k8up-io https://k8up-io.github.io/k8up
 	kubectl apply -f https://github.com/k8up-io/k8up/releases/latest/download/k8up-crd.yaml --server-side
 	helm upgrade --install k8up \
@@ -141,6 +150,42 @@ $(k8up_sentinel): kind-setup
 	kubectl -n k8up-system wait --for condition=Available deployment/k8up --timeout 60s
 	@touch $@
 
+secret-generator-setup: $(secret-generator-sentinel)
+
+$(secret-generator-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(secret-generator-sentinel):
+	if $(vcluster); then \
+		$(vcluster_bin) connect controlplane --namespace vcluster; \
+			$(MAKE) secret-generator-install
+		$(vcluster_bin) disconnect; \
+	fi
+	$(MAKE) secret-generator-install
+	@touch $@
+
+secret-generator-install: export KUBECONFIG = $(KIND_KUBECONFIG)
+secret-generator-install:
+	helm repo add mittwald https://helm.mittwald.de --force-update
+	helm upgrade --version 3.4.1 --values secret-generator/values.yaml --namespace syn-secret-generator --create-namespace --install kubernetes-secret-generator mittwald/kubernetes-secret-generator --wait
+
+mariadb-operator-setup: $(mariadb-operator-sentinel)
+
+$(mariadb-operator-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(mariadb-operator-sentinel):
+	helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator --force-update
+	helm upgrade --install mariadb-operator-crds \
+		--version 25.8.2 \
+		--wait \
+		mariadb-operator/mariadb-operator-crds
+	helm upgrade --install mariadb-operator \
+		--create-namespace \
+		--namespace syn-mariadb-operator \
+		--version 25.8.2 \
+  		--set metrics.enabled=true \
+		--set webhook.cert.certManager.enabled=true \
+		--wait \
+		mariadb-operator/mariadb-operator
+	@touch $@
+
 local-pv-setup: $(local_pv_sentinel) ## Installs an alternative local-pv provider, that has slightly more features
 
 $(local_pv_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
@@ -149,10 +194,10 @@ $(local_pv_sentinel): unset-default-sc
 	kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 	@touch $@
 
-prometheus-setup: $(prometheus_sentinel) ## Install Prometheus stack
+prometheus-setup: $(prometheus-sentinel) ## Install Prometheus stack
 
-$(prometheus_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(prometheus_sentinel): kind-setup-ingress
+$(prometheus-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(prometheus-sentinel): kind-setup-ingress
 	if $(vcluster); then \
 		$(vcluster_bin) connect controlplane --namespace vcluster; \
 		$(MAKE) prometheus-install -e PROM_VALUES=prometheus/values_vcluster.yaml; \
