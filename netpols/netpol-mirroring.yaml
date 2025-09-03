@@ -39,7 +39,7 @@ spec:
                 kubernetes.io/metadata.name: ingress-nginx
           - namespaceSelector:
               matchLabels:
-                kubernetes.io/metadata.name: cnpg-system
+                kubernetes.io/metadata.name: syn-cnpg-system
       podSelector: {}
       policyTypes:
       - Ingress
