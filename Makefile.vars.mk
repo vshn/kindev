@@ -1,19 +1,19 @@
 ## These are some common variables for Make
-crossplane_sentinel = $(kind_dir)/crossplane-sentinel
-certmanager-sentinel = $(kind_dir)/certmanager-sentinel
-k8up-sentinel = $(kind_dir)/k8up-sentinel
-prometheus-sentinel = $(kind_dir)/prometheus-sentinel
-local_pv_sentinel = $(kind_dir)/local_pv
-csi_sentinel = $(kind_dir)/csi_provider
-metallb_sentinel = $(kind_dir)/metallb
-komoplane_sentinel = $(kind_dir)/komoplane
-netpols_sentinel = $(kind_dir)/netpols
-espejo_sentinel = $(kind_dir)/espejo
-forgejo_sentinel = $(kind_dir)/forgejo
-argocd_sentinel = $(kind_dir)/argocd
-secret-generator-sentinel = $(kind_dir)/secret-generator-sentinel
-mariadb-operator-sentinel = $(kind_dir)/mariadb-operator-sentinel
-minio-sentinel = $(kind_dir)/minio-sentinel
+crossplane_sentinel = $(kind_dir)/crossplane_sentinel
+certmanager_sentinel = $(kind_dir)/certmanager_sentinel
+k8up_sentinel = $(kind_dir)/k8up_sentinel
+prometheus_sentinel = $(kind_dir)/prometheus_sentinel
+local_pv_sentinel = $(kind_dir)/local_pv_sentinel
+csi_sentinel = $(kind_dir)/csi_provider_sentinel
+metallb_sentinel = $(kind_dir)/metallb_sentinel
+komoplane_sentinel = $(kind_dir)/komoplane_sentinel
+netpols_sentinel = $(kind_dir)/netpols_sentinel
+espejo_sentinel = $(kind_dir)/espejo_sentinel
+forgejo_sentinel = $(kind_dir)/forgejo_sentinel
+argocd_sentinel = $(kind_dir)/argocd_sentinel
+secret_generator_sentinel = $(kind_dir)/secret_generator_sentinel
+mariadb_operator_sentinel = $(kind_dir)/mariadb-operator_sentinel
+minio_sentinel = $(kind_dir)/minio_sentinel
 
 enable_xfn = true
 

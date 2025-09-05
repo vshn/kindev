@@ -169,7 +169,7 @@ secret-generator-install:
 
 mariadb-operator-setup: $(mariadb_operator_sentinel)
 
-$(mariadb_operator-sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(mariadb_operator_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(mariadb_operator_sentinel):
 	helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator --force-update
 	helm upgrade --install mariadb-operator-crds \
