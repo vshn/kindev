@@ -111,7 +111,7 @@ $(certmanager_sentinel):
 
 certmanager-install: export KUBECONFIG = $(KIND_KUBECONFIG)
 certmanager-install:
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
 
