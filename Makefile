@@ -338,7 +338,7 @@ $(vcluster_bin): export GOARCH = $(shell go env GOARCH)
 $(vcluster_bin): export GOBIN = $(go_bin)
 $(vcluster_bin): | $(go_bin)
 	if $(vcluster); then \
-		go install github.com/loft-sh/vcluster/cmd/vclusterctl@v0.26.0; \
+		go install github.com/loft-sh/vcluster/cmd/vclusterctl@v0.28.0; \
 	fi
 
 
@@ -346,7 +346,7 @@ $(vcluster_bin): | $(go_bin)
 vcluster-setup: export KUBECONFIG = $(KIND_KUBECONFIG)
 vcluster-setup: install-vcluster-bin metallb-setup
 	if ! ($(vcluster_bin) list | grep controlplane ) && $(vcluster) ; then \
-		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose ; \
+		$(vcluster_bin) create controlplane --namespace vcluster --connect=false -f vclusterconfig/values.yaml --expose --chart-version 0.28.0 ; \
 		kubectl apply -f vclusterconfig/ingress.yaml; \
 		$(vcluster_bin) connect controlplane --namespace vcluster --print --server=https://vcluster.127.0.0.1.nip.io:8443 > .kind/vcluster-config; \
 		kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type "json" -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--enable-ssl-passthrough"}]'; \
