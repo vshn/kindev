@@ -41,3 +41,5 @@ PROM_VALUES=prometheus/values.yaml
 vcluster_bin = $(go_bin)/vclusterctl
 # enable or disable vcluster provisioning
 vcluster=false
+
+appcat_namespace ?= syn-appcat
