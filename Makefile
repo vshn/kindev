@@ -375,14 +375,14 @@ vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints
 vcluster-in-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	$(vcluster_bin) connect controlplane --namespace vcluster > /dev/null; \
-	kubectl view-serviceaccount-kubeconfig -n syn-appcat appcat-service-cluster | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"' ; \
+	kubectl view-serviceaccount-kubeconfig -n $(appcat_namespace) appcat-service-cluster | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"' ; \
 	$(vcluster_bin) disconnect > /dev/null
 
 .PHONY: vcluster-host-kubeconfig
 vcluster-host-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints out the kube config to connect from the vcluster to the host cluster, it uses the service account provisioned by component-appcat
 vcluster-host-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
-	kubectl view-serviceaccount-kubeconfig -n syn-appcat appcat-control-plane | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)' | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"'
+	kubectl view-serviceaccount-kubeconfig -n $(appcat_namespace) appcat-control-plane | yq '.clusters[0].cluster.insecure-skip-tls-verify = true' | yq 'del(.clusters[0].cluster.certificate-authority-data)' | yq '.clusters[0].cluster.server = "https://kubernetes-host.default.svc"'
 
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
