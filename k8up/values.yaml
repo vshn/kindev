@@ -2,3 +2,6 @@ metrics:
   serviceMonitor:
     enabled: true
     scrapeInterval: 10s
+cleanup:
+  repository: alpine/kubectl
+
