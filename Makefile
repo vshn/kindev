@@ -375,6 +375,7 @@ vcluster-in-cluster-kubeconfig: export KUBECONFIG = $(KIND_KUBECONFIG) ## Prints
 vcluster-in-cluster-kubeconfig:
 	@export KUBECONFIG=$(KIND_KUBECONFIG) ; \
 	$(vcluster_bin) connect controlplane --namespace vcluster > /dev/null; \
+	kubectl wait --for=create -n $(appcat_namespace) secret/appcat-service-cluster --timeout=180s > /dev/null || >&2 echo "Service account secret not available. Make sure ArgoCD is syncing and try again."; \
 	kubectl view-serviceaccount-kubeconfig -n $(appcat_namespace) appcat-service-cluster | yq '.clusters[0].cluster.server = "https://controlplane.vcluster"' ; \
 	$(vcluster_bin) disconnect > /dev/null
 
