@@ -14,6 +14,7 @@ argocd_sentinel = $(kind_dir)/argocd_sentinel
 secret_generator_sentinel = $(kind_dir)/secret_generator_sentinel
 mariadb_operator_sentinel = $(kind_dir)/mariadb-operator_sentinel
 minio_sentinel = $(kind_dir)/minio_sentinel
+registry_sentinel = $(kind_dir)/registry
 
 enable_xfn = true
 

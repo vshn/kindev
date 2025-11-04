@@ -39,7 +39,7 @@ vshnpostgresql: shared-setup stackgres-setup ## Install vshn postgres dependenci
 vshnredis: shared-setup  ## Install vshn redis dependencies
 
 .PHONY: shared-setup ## Install dependencies shared between all services
-shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup
+shared-setup: kind-setup-ingress certmanager-setup k8up-setup netpols-setup forgejo-setup prometheus-setup minio-setup metallb-setup argocd-setup registry-setup
 
 .PHONY: spks-setup ## Install dependencies for spks
 spks-setup: shared-setup secret-generator-setup mariadb-operator-setup
@@ -388,3 +388,10 @@ vcluster-host-kubeconfig:
 .PHONY: vcluster-clean
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
 	$(vcluster_bin) rm controlplane || true
+
+registry-setup: $(registry_sentinel)
+
+$(registry_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(registry_sentinel):
+	kubectl apply -f registry
+	@touch $@

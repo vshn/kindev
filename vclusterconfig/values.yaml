@@ -14,3 +14,14 @@ networking:
       to: minio/minio-server
     - from: default/kubernetes
       to: default/kubernetes-host
+    - from: kube-system/registry
+      to: kube-system/registry
+sync:
+  fromHost:
+    secrets:
+      enabled: true
+      mappings:
+        byName:
+          # syncs all Secrets from "foo" namespace
+          # to the "bar" namespace in a virtual cluster. Secrets names are unchanged.
+          "kube-system/tls-server-certificate": "syn-crossplane/tls-server-certificate"
