@@ -13,6 +13,14 @@ spec:
       labels:
         app: registry
     spec:
+      nodeName: kindev-control-plane
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Equal
       containers:
         - name: registry
           image: registry:3
@@ -30,23 +38,23 @@ spec:
               mountPath: /etc/cert
       volumes:
         - name: registry-storage
-          persistentVolumeClaim:
-            claimName: registry
+          emptyDir: {}
         - name: server-cert
           secret:
             secretName: tls-server-certificate
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: registry
-  namespace: kube-system
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+# Localprovisioner doesn't want to provision the PVC on the control plane
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: registry
+#   namespace: kube-system
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
