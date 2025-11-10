@@ -26,6 +26,9 @@ spec:
           image: registry:3
           ports:
             - containerPort: 5000
+              hostPort: 5000
+              name: https
+              protocol: TCP
           env:
             - name: REGISTRY_HTTP_TLS_CERTIFICATE
               value: /etc/cert/tls.crt
@@ -118,6 +121,7 @@ spec:
     - registry.kube-system
     - registry.kube-system.svc
     - registry.kube-system.svc.cluster.local
+    - localhost
   duration: 87600h0m0s
   issuerRef:
     group: cert-manager.io
