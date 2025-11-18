@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      nodeName: kindev-control-plane
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Equal
+      containers:
+        - name: registry
+          image: registry:3
+          ports:
+            - containerPort: 5000
+              hostPort: 5000
+              name: https
+              protocol: TCP
+          env:
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: /etc/cert/tls.crt
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: /etc/cert/tls.key
+          volumeMounts:
+            - name: registry-storage
+              mountPath: /var/lib/registry
+            - name: server-cert
+              mountPath: /etc/cert
+      volumes:
+        - name: registry-storage
+          emptyDir: {}
+        - name: server-cert
+          secret:
+            secretName: tls-server-certificate
+# Localprovisioner doesn't want to provision the PVC on the control plane
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: registry
+#   namespace: kube-system
+# spec:
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+  namespace: kube-system
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    app: registry
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    # We need the ingress to pass through ssl traffic to the vCluster
+    # This only works for the nginx-ingress (enable via --enable-ssl-passthrough
+    # https://kubernetes.github.io/ingress-nginx/user-guide/tls/#ssl-passthrough )
+    # for other ingress controllers please check their respective documentation.
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  name: registry
+  namespace: kube-system
+  labels:
+    app: registry
+spec:
+  rules:
+    - host: registry.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: registry
+                port:
+                  number: 5000
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: registry-ca
+  namespace: kube-system
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: registry-cert
+  namespace: kube-system
+spec:
+  additionalOutputFormats:
+    - type: CombinedPEM
+  dnsNames:
+    - registry
+    - registry.kube-system
+    - registry.kube-system.svc
+    - registry.kube-system.svc.cluster.local
+    - localhost
+  duration: 87600h0m0s
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: registry-ca
+  privateKey:
+    algorithm: ECDSA
+    encoding: PKCS1
+    size: 256
+  renewBefore: 2400h0m0s
+  secretName: tls-server-certificate
+  subject:
+    organizations:
+      - vshn-appcat-server
+  usages:
+    - server auth
+    - client auth

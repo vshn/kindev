@@ -2,6 +2,12 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
   apiServerPort: 36377
+# Make the internal registry usable via `localhost:5000`
+# Does not work for provider-helm though!
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
+      endpoint = ["http://registry.kube-system.svc.cluster.local:5000"]
 nodes:
   - role: control-plane
     kubeadmConfigPatches:
@@ -16,6 +22,9 @@ nodes:
         protocol: TCP
       - containerPort: 443
         hostPort: 8443
+        protocol: TCP
+      - containerPort: 5000
+        hostPort: 5000
         protocol: TCP
   - role: worker
   # - role: worker
