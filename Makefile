@@ -17,15 +17,15 @@ include kind/kind.mk
 appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnall
-vshnall: vcluster=true
+vshnall: vcluster=false
 vshnall: vshnpostgresql vshnredis
 
 .PHONY: spks
 spks: vcluster=true
 spks: spks-setup
 
-.PHONY: converged
-converged: vcluster=false
+.PHONY: non-converged
+converged: vcluster=true
 converged: vshnpostgresql vshnredis
 
 .PHONY: vcluster
