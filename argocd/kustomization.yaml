@@ -3,10 +3,10 @@ kind: Kustomization
 
 namespace: argocd
 resources:
-- ./ns.yaml
-- ./install.yaml
-- ./ingress.yaml
+  - ./ns.yaml
+  - ./install.yaml
+  - ./ingress.yaml
 
 images:
-- name: quay.io/argoproj/argocd
-  newTag: v2.14.2
+  - name: quay.io/argoproj/argocd
+    newTag: v3.3.2
