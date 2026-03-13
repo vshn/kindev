@@ -12,7 +12,7 @@ $(TALOS_KUBECONFIG):
 		--workers 1 \
 		--memory-controlplanes 8GiB \
 		--memory-workers 8GiB \
-		-p 8088:80/tcp,8443:443/tcp,5000:5000/tcp,10000:10000/tcp,10001:10001/tcp,10002:10002/tcp,10003:10003/tcp,10004:10004/tcp,10005:10005/tcp,10006:10006/tcp,10007:10007/tcp,10008:10008/tcp,10009:10009/tcp,10010:10010/tcp,10011:10011/tcp,10012:10012/tcp,10013:10013/tcp,10014:10014/tcp,10015:10015/tcp,10016:10016/tcp,10017:10017/tcp,10018:10018/tcp,10019:10019/tcp \
+		-p 8088:80/tcp,8443:443/tcp,5000:5000/tcp,$$(seq $(KGATEWAY_PORT_START) $(KGATEWAY_PORT_END) | sed 's/.*/&:&\/tcp/' | paste -sd,) \
 		--config-patch-controlplanes @talos/config-patch-controlplane.yaml \
 		--config-patch-workers @talos/config-patch-worker.yaml & \
 	talos_pid=$$!; \

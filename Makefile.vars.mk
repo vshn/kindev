@@ -26,6 +26,8 @@ registry_sentinel = $(cluster_dir)/registry
 
 KGATEWAY_VERSION ?= 2.2.1
 GATEWAY_API_VERSION ?= 1.4.0
+KGATEWAY_PORT_START ?= 10000
+KGATEWAY_PORT_END ?= 10019
 
 enable_xfn = true
 
