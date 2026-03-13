@@ -33,3 +33,4 @@ prometheus:
 kube-state-metrics:
   metricLabelsAllowlist:
     - namespaces=[*]
+    - pods=[*]
