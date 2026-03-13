@@ -1,20 +1,33 @@
 ## These are some common variables for Make
-crossplane_sentinel = $(kind_dir)/crossplane_sentinel
-certmanager_sentinel = $(kind_dir)/certmanager_sentinel
-k8up_sentinel = $(kind_dir)/k8up_sentinel
-prometheus_sentinel = $(kind_dir)/prometheus_sentinel
-local_pv_sentinel = $(kind_dir)/local_pv_sentinel
-csi_sentinel = $(kind_dir)/csi_provider_sentinel
-metallb_sentinel = $(kind_dir)/metallb_sentinel
-komoplane_sentinel = $(kind_dir)/komoplane_sentinel
-netpols_sentinel = $(kind_dir)/netpols_sentinel
-espejo_sentinel = $(kind_dir)/espejo_sentinel
-forgejo_sentinel = $(kind_dir)/forgejo_sentinel
-argocd_sentinel = $(kind_dir)/argocd_sentinel
-secret_generator_sentinel = $(kind_dir)/secret_generator_sentinel
-mariadb_operator_sentinel = $(kind_dir)/mariadb-operator_sentinel
-minio_sentinel = $(kind_dir)/minio_sentinel
-registry_sentinel = $(kind_dir)/registry
+
+## Cluster provider: kind (default) or talos
+CLUSTER_PROVIDER ?= kind
+
+## Sentinel directory (shared across providers)
+cluster_dir ?= $(PWD)/.kind
+
+crossplane_sentinel = $(cluster_dir)/crossplane_sentinel
+certmanager_sentinel = $(cluster_dir)/certmanager_sentinel
+k8up_sentinel = $(cluster_dir)/k8up_sentinel
+prometheus_sentinel = $(cluster_dir)/prometheus_sentinel
+local_pv_sentinel = $(cluster_dir)/local_pv_sentinel
+csi_sentinel = $(cluster_dir)/csi_provider_sentinel
+metallb_sentinel = $(cluster_dir)/metallb_sentinel
+komoplane_sentinel = $(cluster_dir)/komoplane_sentinel
+netpols_sentinel = $(cluster_dir)/netpols_sentinel
+espejo_sentinel = $(cluster_dir)/espejo_sentinel
+forgejo_sentinel = $(cluster_dir)/forgejo_sentinel
+argocd_sentinel = $(cluster_dir)/argocd_sentinel
+secret_generator_sentinel = $(cluster_dir)/secret_generator_sentinel
+mariadb_operator_sentinel = $(cluster_dir)/mariadb-operator_sentinel
+minio_sentinel = $(cluster_dir)/minio_sentinel
+kgateway_sentinel = $(cluster_dir)/kgateway_sentinel
+registry_sentinel = $(cluster_dir)/registry
+
+KGATEWAY_VERSION ?= 2.2.1
+GATEWAY_API_VERSION ?= 1.4.0
+KGATEWAY_PORT_START ?= 10000
+KGATEWAY_PORT_END ?= 10019
 
 enable_xfn = true
 
@@ -31,8 +44,26 @@ DOCKER_CMD ?= docker
 KIND_NODE_VERSION ?= v1.33.4
 KIND_IMAGE ?= docker.io/kindest/node:$(KIND_NODE_VERSION)
 KIND_CMD ?= go run sigs.k8s.io/kind
-KIND_KUBECONFIG ?= $(kind_dir)/kind-kubeconfig-$(KIND_NODE_VERSION)
+KIND_KUBECONFIG ?= $(cluster_dir)/kind-kubeconfig-$(KIND_NODE_VERSION)
 KIND_CLUSTER ?= $(PROJECT_NAME)
+
+## TALOS:setup
+TALOS_CLUSTER_NAME ?= kindev-talos
+TALOS_IMAGE ?= ghcr.io/siderolabs/talos:v1.12.4
+TALOS_K8S_VERSION ?= 1.35.1
+TALOS_SUBNET ?= 10.5.0.0/24
+TALOS_KUBECONFIG ?= $(cluster_dir)/talos-kubeconfig
+
+## Provider-specific settings
+ifeq ($(CLUSTER_PROVIDER),talos)
+  CLUSTER_KUBECONFIG ?= $(TALOS_KUBECONFIG)
+  DOCKER_CONTAINER ?= $(TALOS_CLUSTER_NAME)-controlplane-1
+  DOCKER_NETWORK ?= $(TALOS_CLUSTER_NAME)
+else
+  CLUSTER_KUBECONFIG ?= $(KIND_KUBECONFIG)
+  DOCKER_CONTAINER ?= kindev-control-plane
+  DOCKER_NETWORK ?= kind
+endif
 
 ## PROMETHEUS
 PROM_VALUES=prometheus/values.yaml
