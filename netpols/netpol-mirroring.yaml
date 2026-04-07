@@ -1,45 +1,129 @@
-apiVersion: sync.appuio.ch/v1alpha1
-kind: SyncConfig
+---
+apiVersion: espejote.io/v1alpha1
+kind: ManagedResource
 metadata:
-  name: netpol-mirroring
-  namespace: system
+  name: sync-netpols
+  namespace: default
 spec:
-  forceRecreate: true
-  namespaceSelector:
-    labelSelector:
-      matchExpressions:
-      - key: appcat.vshn.io/servicename
-        operator: Exists
-    ignoreNames:
-    - system
-  syncItems:
-  - apiVersion: networking.k8s.io/v1
-    kind: NetworkPolicy
-    metadata:
-      name: allow-from-same-namespace
-    spec:
-      ingress:
-      - from:
-        - podSelector: {}
-      podSelector: {}
-      policyTypes:
-      - Ingress
-  - apiVersion: networking.k8s.io/v1
-    kind: NetworkPolicy
-    metadata:
-      name: allow-from-other-namespaces
-    spec:
-      ingress:
-        - from:
-          - namespaceSelector:
-              matchLabels:
-                kubernetes.io/metadata.name: prometheus-system
-          - namespaceSelector:
-              matchLabels:
-                kubernetes.io/metadata.name: ingress-nginx
-          - namespaceSelector:
-              matchLabels:
-                kubernetes.io/metadata.name: syn-cnpg-system
-      podSelector: {}
-      policyTypes:
-      - Ingress
+  context:
+    - name: target_namespaces
+      resource:
+        apiVersion: v1
+        kind: Namespace
+        labelSelector:
+          matchExpressions:
+            - key: appcat.vshn.io/servicename
+              operator: Exists
+  triggers:
+    - name: namespace
+      watchContextResource:
+        name: target_namespaces
+  serviceAccountRef:
+    name: sync-netpols
+  template: |
+    local esp = import 'espejote.libsonnet';
+
+    local copy_allow_claim_to(nsname) = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-from-same-namespace',
+        namespace: nsname
+      },
+      spec: {
+        ingress: [
+          {
+            from: [
+              {
+                podSelector: {}
+              }
+            ]
+          }
+        ],
+        podSelector: {},
+        policyTypes: [
+          'Ingress'
+        ]
+      }
+    };
+
+    local copy_allow_other_to(nsname) = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-from-other-namespaces',
+        namespace: nsname
+      },
+      spec: {
+        ingress: [
+          {
+            from: [
+              {
+                namespaceSelector: {
+                  matchLabels: {
+                    'kubernetes.io/metadata.name': 'prometheus-system'
+                  }
+                }
+              },
+              {
+                namespaceSelector: {
+                  matchLabels: {
+                    'kubernetes.io/metadata.name': 'ingress-nginx'
+                  }
+                }
+              },
+              {
+                namespaceSelector: {
+                  matchLabels: {
+                    'kubernetes.io/metadata.name': 'syn-cnpg-system'
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        podSelector: {},
+        policyTypes: [
+          'Ingress'
+        ]
+      }
+    };
+
+    [
+      copy_allow_claim_to(ns.metadata.name)
+      for ns in esp.context().target_namespaces
+    ] + [
+      copy_allow_other_to(ns.metadata.name)
+      for ns in esp.context().target_namespaces
+    ]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sync-netpols
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sync-netpols:sync-netpols
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sync-netpols:sync-netpols
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sync-netpols:sync-netpols
+subjects:
+  - kind: ServiceAccount
+    name: sync-netpols
+    namespace: default
