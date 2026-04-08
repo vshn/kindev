@@ -298,18 +298,19 @@ unset-default-sc:
 		kubectl patch $$sc -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'; \
 	done
 
-netpols-setup: $(espejo_sentinel) $(netpols_sentinel) ## Install netpols to simulate appuio's netpols
+netpols-setup: $(espejote_sentinel) $(netpols_sentinel) ## Install netpols to simulate appuio's netpols
 
 $(netpols_sentinel): export KUBECONFIG = $(CLUSTER_KUBECONFIG)
 $(netpols_sentinel):
 	kubectl apply -f netpols
 	touch $@
 
-espejo-setup: $(espejo_sentinel)
+espejote-setup: $(espejote_sentinel)
 
-$(espejo_sentinel): export KUBECONFIG = $(CLUSTER_KUBECONFIG)
-$(espejo_sentinel):
-	kubectl apply -f espejo
+$(espejote_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(espejote_sentinel):
+	kubectl apply -k https://github.com/vshn/espejote/config/crd
+	kubectl apply -k https://github.com/vshn/espejote/config/default
 	touch $@
 
 kgateway-setup: $(kgateway_sentinel)
