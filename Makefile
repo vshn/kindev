@@ -307,7 +307,7 @@ $(netpols_sentinel):
 
 espejote-setup: $(espejote_sentinel)
 
-$(espejote_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(espejote_sentinel): export KUBECONFIG = $(CLUSTER_KUBECONFIG)
 $(espejote_sentinel):
 	kubectl apply -k https://github.com/vshn/espejote/config/crd
 	kubectl apply -k https://github.com/vshn/espejote/config/default
