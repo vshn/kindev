@@ -1,6 +1,3 @@
-go_bin ?= $(PWD)/.work/bin
-$(go_bin):
-	@mkdir -p $@
 kind_bin = $(go_bin)/kind
 
 # Prepare kind binary

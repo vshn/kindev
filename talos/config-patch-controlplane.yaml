@@ -9,8 +9,10 @@ machine:
       enabled: true
       forwardKubeDNSToHost: true
 cluster:
-  extraManifests:
-    - https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  # Metrics server doesn't work without --kubelet-insecure-tls
+  # which needs more configuration
+  # extraManifests:
+  #   - https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
   controllerManager:
     extraArgs:
       bind-address: 0.0.0.0
