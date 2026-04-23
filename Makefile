@@ -134,7 +134,7 @@ $(certmanager_sentinel):
 
 certmanager-install: export KUBECONFIG = $(CLUSTER_KUBECONFIG)
 certmanager-install:
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.2/cert-manager.yaml
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager --timeout 120s
 	kubectl -n cert-manager wait --for condition=Available deployment/cert-manager-webhook --timeout 120s
 
@@ -326,6 +326,7 @@ $(kgateway_sentinel): cluster-setup
 		--wait
 	kubectl apply -f kgateway/gateway.yaml
 	kubectl wait --for=condition=Programmed gateway/ssh-gateway -n kgateway-system --timeout=2m
+	kubectl wait --for=condition=Programmed gateway/http-gateway -n kgateway-system --timeout=2m
 	@touch $@
 
 forgejo-setup: $(forgejo_sentinel) ## Install local forgejo instance to host argocd repos
