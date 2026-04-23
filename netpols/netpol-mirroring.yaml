@@ -78,6 +78,13 @@ spec:
                     'kubernetes.io/metadata.name': 'syn-cnpg-system'
                   }
                 }
+              },
+              {
+                namespaceSelector: {
+                  matchLabels: {
+                    'kubernetes.io/metadata.name': 'kgateway-system'
+                  }
+                }
               }
             ]
           }
