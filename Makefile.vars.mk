@@ -1,5 +1,9 @@
 ## These are some common variables for Make
 
+go_bin ?= $(PWD)/.work/bin
+$(go_bin):
+	@mkdir -p $@
+
 ## Cluster provider: kind (default) or talos
 CLUSTER_PROVIDER ?= kind
 
@@ -48,11 +52,13 @@ KIND_KUBECONFIG ?= $(cluster_dir)/kind-kubeconfig-$(KIND_NODE_VERSION)
 KIND_CLUSTER ?= $(PROJECT_NAME)
 
 ## TALOS:setup
+TALOS_VERSION ?= v1.12.6
 TALOS_CLUSTER_NAME ?= kindev-talos
-TALOS_IMAGE ?= ghcr.io/siderolabs/talos:v1.12.4
+TALOS_IMAGE ?= ghcr.io/siderolabs/talos:$(TALOS_VERSION)
 TALOS_K8S_VERSION ?= 1.35.1
 TALOS_SUBNET ?= 10.5.0.0/24
 TALOS_KUBECONFIG ?= $(cluster_dir)/talos-kubeconfig
+TALOS_K8S_API_PORT ?= 36377
 
 ## Provider-specific settings
 ifeq ($(CLUSTER_PROVIDER),talos)

@@ -23,7 +23,7 @@ cluster-setup: $(CLUSTER_PROVIDER)-setup
 cluster-setup-ingress: $(CLUSTER_PROVIDER)-setup-ingress
 
 .PHONY: cluster-clean
-cluster-clean: $(CLUSTER_PROVIDER)-clean
+cluster-clean: kind-clean talos-clean
 
 cluster-storage: cluster-setup csi-host-path-setup vcluster-setup
 
