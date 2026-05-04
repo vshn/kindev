@@ -1,0 +1,173 @@
+global:
+  enabled: true
+
+server:
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+      
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+      
+      storage "file" {
+        path = "/openbao/data"
+      }
+
+  extraInitContainers:
+  - name: fix-data-owner
+    image: busybox
+    securityContext:
+      runAsNonRoot: false
+      runAsUser: 0
+    command:
+      - "/bin/sh"
+      - "-cex"
+      - "chown -R 100:1000 /openbao/data"
+    volumeMounts:
+      - name: data
+        mountPath: /openbao/data
+
+  ingress:
+    enabled: true
+    hosts:
+    - host: master-openbao.127.0.0.1.nip.io
+      paths: []
+
+ui:
+  enabled: true
+
+injector:
+  enabled: false
+
+extraObjects:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: master-openbao-init
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: master-openbao-init
+    rules:
+    - apiGroups: [""]
+      resources: ["secrets"]
+      verbs: ["create"]  
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: master-openbao-init
+    subjects:
+    - kind: ServiceAccount
+      name: master-openbao-init
+    roleRef:
+      kind: Role
+      name: master-openbao-init
+      apiGroup: rbac.authorization.k8s.io  
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: master-openbao-init
+    spec:
+      template:
+        spec:
+          serviceAccountName: master-openbao-init
+          restartPolicy: Never
+          initContainers:
+          - name: install-tools
+            image: alpine/k8s:1.30.3
+            command:
+            - sh
+            - -c
+            - cp $(which kubectl) /tools/kubectl && wget -qO /tools/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 && chmod +x /tools/jq
+            volumeMounts:
+            - name: tools
+              mountPath: /tools
+          containers:
+          - name: master-openbao-init
+            image: ghcr.io/openbao/openbao:latest
+            command: ["/bin/sh", "/scripts/init.sh"]
+            env:
+            - name: VAULT_ADDR
+              value: "http://master-openbao:8200"
+            volumeMounts:
+            - name: init-script
+              mountPath: /scripts
+            - name: tools
+              mountPath: /tools
+          volumes:
+          - name: init-script
+            configMap:
+              name: master-openbao-init-script
+              defaultMode: 0755
+          - name: tools
+            emptyDir: {}
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: master-openbao-init-script
+    data:
+      init.sh: |
+        #!/bin/sh
+        set -e
+
+        # Wait for vault to be available, exit early if already initialized
+        echo "Waiting for vault to be available..."
+        while true; do
+          STATUS="$(bao status -format=json 2>/dev/null; true)"
+          if echo "$STATUS" | /tools/jq -e '.initialized == true' > /dev/null 2>&1; then
+            echo "Vault is already initialized, exiting."
+            exit 0
+          fi
+          if echo "$STATUS" | /tools/jq -e '.initialized == false' > /dev/null 2>&1; then
+            break
+          fi
+          echo "Vault not ready yet, retrying in 5s..."
+          echo "$STATUS"
+          sleep 5
+        done
+
+        # Initialize vault
+        echo "Initializing vault..."
+        INIT_JSON="$(bao operator init -key-shares=1 -key-threshold=1 -format=json)"
+
+        UNSEAL_KEY="$(echo "$INIT_JSON" | /tools/jq -r '.unseal_keys_b64[0]')"
+        ROOT_TOKEN="$(echo "$INIT_JSON" | /tools/jq -r '.root_token')"
+
+        # Unseal vault
+        echo "Unsealing vault..."
+        bao operator unseal "$UNSEAL_KEY"
+
+        export VAULT_TOKEN="$ROOT_TOKEN"
+
+        echo "Enabling transit secrets engine..."
+        bao secrets enable transit
+
+        echo "Creating autounseal transit key..."
+        bao write -f transit/keys/autounseal
+
+        echo "Writing autounseal policy..."
+        bao policy write autounseal - <<'EOF'
+        path "transit/encrypt/autounseal" {
+          capabilities = ["create", "update"]
+        }
+
+        path "transit/decrypt/autounseal" {
+          capabilities = ["create", "update"]
+        }
+
+        path "transit/keys/autounseal" {
+          capabilities = ["read"]
+        }
+        EOF
+
+        echo "Saving credentials to Kubernetes secret master-openbao-init-credentials..."
+        NAMESPACE="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
+        /tools/kubectl -n "$NAMESPACE" create secret generic master-openbao-init-credentials \
+          --from-literal=root-token="$ROOT_TOKEN" \
+          --from-literal=unseal-key="$UNSEAL_KEY"
+
+        echo "Vault configuration is complete."
