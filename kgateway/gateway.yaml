@@ -37,6 +37,24 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  name: tcp-gateway
+  namespace: kgateway-system
+spec:
+  gatewayClassName: kgateway
+  allowedListeners:
+    namespaces:
+      from: All
+  listeners:
+    - name: dummy
+      port: 9999
+      protocol: TCP
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
   name: http-gateway
   namespace: kgateway-system
 spec:

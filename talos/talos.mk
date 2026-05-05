@@ -9,7 +9,7 @@ NUM_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 
 .PHONY: talos-setup
 talos-setup: $(TALOS_KUBECONFIG)
 
-$(TALOS_KUBECONFIG): $(talosctl_bin)
+$(TALOS_KUBECONFIG): $(talosctl_bin) talos-iptables-setup
 	@mkdir -p $(cluster_dir)
 	@set -e; \
 	$(talosctl_bin) cluster create docker \
@@ -49,6 +49,13 @@ $(TALOS_KUBECONFIG): $(talosctl_bin)
 	$(talosctl_bin) kubeconfig --force --nodes 10.5.0.2 $(TALOS_KUBECONFIG)
 	cat $(TALOS_KUBECONFIG) | yq '.clusters[0].cluster.server = "https://127.0.0.1:$(TALOS_K8S_API_PORT)"' > $(cluster_dir)/kind-config
 	wait $$talos_pid
+	@echo =======
+	@echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"
+	@echo "export KUBECONFIG=$$(realpath "$(TALOS_KUBECONFIG)")"
+	@echo =======
+
+.PHONY: talos-iptables-setup
+talos-iptables-setup:
 	@echo "Adding iptables DNAT rules to expose API server on 127.0.0.1:36377..."
 	@sudo iptables -t nat -C OUTPUT -p tcp -d 127.0.0.1 --dport 36377 -j DNAT --to-destination 10.5.0.2:6443 2>/dev/null || \
 		sudo iptables -t nat -A OUTPUT -p tcp -d 127.0.0.1 --dport 36377 -j DNAT --to-destination 10.5.0.2:6443
@@ -57,11 +64,6 @@ $(TALOS_KUBECONFIG): $(talosctl_bin)
 	@sudo iptables -t nat -C POSTROUTING -d 10.5.0.2 -p tcp --dport 6443 -j MASQUERADE 2>/dev/null || \
 		sudo iptables -t nat -A POSTROUTING -d 10.5.0.2 -p tcp --dport 6443 -j MASQUERADE
 	@sudo sysctl -w net.ipv4.conf.all.route_localnet=1 >/dev/null
-	@sed -i 's|https://10.5.0.2:6443|https://127.0.0.1:36377|' $(TALOS_KUBECONFIG)
-	@echo =======
-	@echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"
-	@echo "export KUBECONFIG=$$(realpath "$(TALOS_KUBECONFIG)")"
-	@echo =======
 
 .PHONY: talos-cilium-setup
 talos-cilium-setup:
