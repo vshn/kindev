@@ -1,8 +1,3 @@
-go_bin ?= $(PWD)/.work/bin
-$(go_bin):
-	@mkdir -p $@
-
-kind_dir ?= $(PWD)/.kind
 kind_bin = $(go_bin)/kind
 
 # Prepare kind binary
@@ -25,6 +20,7 @@ kind-setup: $(KIND_KUBECONFIG) ## Creates the kind cluster
 kind-setup-ingress: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-setup-ingress: kind-setup ## Install NGINX as ingress controller onto kind cluster (localhost:8088)
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type=json -p '[{"op":"add","path":"/spec/template/spec/nodeSelector/ingress-ready","value":"true"}]'
 	kubectl -n ingress-nginx wait --for condition=Ready pods -l app.kubernetes.io/component=controller --timeout 180s
 	# We need to restart nginx, because it can't properly find the endpoints otherwise...
 	kubectl -n ingress-nginx rollout restart deployment ingress-nginx-controller
@@ -42,7 +38,7 @@ kind-clean: export KUBECONFIG = $(KIND_KUBECONFIG)
 kind-clean: $(kind_bin)
 kind-clean: ## Removes the kind Cluster
 	@$(kind_bin) delete cluster --name $(KIND_CLUSTER) || true
-	rm -rf $(kind_dir) $(kind_bin)
+	rm -rf $(cluster_dir) $(kind_bin)
 
 $(KIND_KUBECONFIG): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(KIND_KUBECONFIG): $(kind_bin)
@@ -50,7 +46,7 @@ $(KIND_KUBECONFIG): $(kind_bin)
 		--name $(KIND_CLUSTER) \
 		--image $(KIND_IMAGE) \
 		--config kind/config.yaml
-	cp $(KIND_KUBECONFIG) $(kind_dir)/kind-config
+	cp $(KIND_KUBECONFIG) $(cluster_dir)/kind-config
 	kubectl taint nodes --all node-role.kubernetes.io/control-plane- node-role.kubernetes.io/master- || true
 	@kubectl version
 	@kubectl cluster-info
