@@ -34,7 +34,7 @@ server:
   ingress:
     enabled: true
     hosts:
-    - host: master-openbao.127.0.0.1.nip.io
+    - host: openbao.127.0.0.1.nip.io
       paths: []
 
 ui:
@@ -47,11 +47,11 @@ extraObjects:
   - apiVersion: v1
     kind: ServiceAccount
     metadata:
-      name: master-openbao-init
+      name: openbao-init
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
-      name: master-openbao-init
+      name: openbao-init
     rules:
     - apiGroups: [""]
       resources: ["secrets"]
@@ -59,22 +59,22 @@ extraObjects:
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
-      name: master-openbao-init
+      name: openbao-init
     subjects:
     - kind: ServiceAccount
-      name: master-openbao-init
+      name: openbao-init
     roleRef:
       kind: Role
-      name: master-openbao-init
+      name: openbao-init
       apiGroup: rbac.authorization.k8s.io  
   - apiVersion: batch/v1
     kind: Job
     metadata:
-      name: master-openbao-init
+      name: openbao-init
     spec:
       template:
         spec:
-          serviceAccountName: master-openbao-init
+          serviceAccountName: openbao-init
           restartPolicy: Never
           initContainers:
           - name: install-tools
@@ -87,12 +87,12 @@ extraObjects:
             - name: tools
               mountPath: /tools
           containers:
-          - name: master-openbao-init
+          - name: openbao-init
             image: ghcr.io/openbao/openbao:latest
             command: ["/bin/sh", "/scripts/init.sh"]
             env:
             - name: VAULT_ADDR
-              value: "http://master-openbao:8200"
+              value: "http://openbao:8200"
             volumeMounts:
             - name: init-script
               mountPath: /scripts
@@ -101,14 +101,14 @@ extraObjects:
           volumes:
           - name: init-script
             configMap:
-              name: master-openbao-init-script
+              name: openbao-init-script
               defaultMode: 0755
           - name: tools
             emptyDir: {}
   - apiVersion: v1
     kind: ConfigMap
     metadata:
-      name: master-openbao-init-script
+      name: openbao-init-script
     data:
       init.sh: |
         #!/bin/sh
@@ -164,9 +164,9 @@ extraObjects:
         }
         EOF
 
-        echo "Saving credentials to Kubernetes secret master-openbao-init-credentials..."
+        echo "Saving credentials to Kubernetes secret openbao-init-credentials..."
         NAMESPACE="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"
-        /tools/kubectl -n "$NAMESPACE" create secret generic master-openbao-init-credentials \
+        /tools/kubectl -n "$NAMESPACE" create secret generic openbao-init-credentials \
           --from-literal=root-token="$ROOT_TOKEN" \
           --from-literal=unseal-key="$UNSEAL_KEY"
 

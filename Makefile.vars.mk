@@ -27,7 +27,7 @@ mariadb_operator_sentinel = $(cluster_dir)/mariadb-operator_sentinel
 minio_sentinel = $(cluster_dir)/minio_sentinel
 kgateway_sentinel = $(cluster_dir)/kgateway_sentinel
 registry_sentinel = $(cluster_dir)/registry
-master_openbao_sentinel = $(cluster_dir)/master_openbao_sentinel
+openbao_sentinel = $(cluster_dir)/openbao_sentinel
 
 KGATEWAY_VERSION ?= 2.2.3
 GATEWAY_API_VERSION ?= 1.4.0

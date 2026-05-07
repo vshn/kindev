@@ -39,7 +39,7 @@ appcat-apiserver: vshnpostgresql ## Install appcat-apiserver dependencies
 
 .PHONY: vshnall
 vshnall: vcluster=false
-vshnall: vshnpostgresql vshnredis
+vshnall: vshnpostgresql vshnredis vshnopenbao
 
 .PHONY: spks
 spks: vcluster=true
@@ -431,14 +431,13 @@ vcluster-host-kubeconfig:
 vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcluster
 	$(vcluster_bin) rm controlplane || true
 
-master-openbao-setup: $(master_openbao_sentinel) ## Install local forgejo instance to host argocd repos
-
-$(master_openbao_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(master_openbao_sentinel):
-	helm upgrade --install master-openbao openbao/openbao --namespace master-openbao --values ./master-openbao/values.yml --create-namespace
-	@echo -e "***\n*** Installed Master OpenBao in http://master-openbao.127.0.0.1.nip.io:8088***"
-	@echo -e "***\n*** credentials: master-openbao-init-credentials***"
-	@echo -e "***\n*** Refer master-openbao/README.md file for more details.\n***"
+vshnopenbao: $(openbao_sentinel) ## Install Master OpenBao instance
+$(openbao_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
+$(openbao_sentinel):
+	helm upgrade --install openbao openbao/openbao --namespace openbao --values ./openbao/values.yml --create-namespace
+	@echo -e "***\n*** Installed Master OpenBao in http://openbao.127.0.0.1.nip.io:8088***"
+	@echo -e "***\n*** credentials: openbao-init-credentials***"
+	@echo -e "***\n*** Refer openbao/README.md file for more details.\n***"
 	touch $@
 
 registry-setup: $(registry_sentinel)
