@@ -434,6 +434,7 @@ vcluster-clean: ## If you break Crossplane hard enough just remove the whole vcl
 vshnopenbao: $(openbao_sentinel) ## Install Master OpenBao instance
 $(openbao_sentinel): export KUBECONFIG = $(KIND_KUBECONFIG)
 $(openbao_sentinel):
+	helm repo add openbao https://openbao.github.io/openbao-helm
 	helm upgrade --install openbao openbao/openbao --namespace openbao --values ./openbao/values.yml --create-namespace
 	@echo -e "***\n*** Installed Master OpenBao in http://openbao.127.0.0.1.nip.io:8088***"
 	@echo -e "***\n*** credentials: openbao-init-credentials***"
